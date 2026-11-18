@@ -48,12 +48,21 @@
       add('travail', 'Alternance — SNCF Réseau', s, e);
       add('trajet', 'Trajet → maison', e, e + t);
     } else if (code === 'ECO') {
-      const sh = ov || cfg.school;
-      const s = toMin(sh.start), e = toMin(sh.end), t = +c.school || 0;
-      const ex = examOn(cfg, d);
-      add('trajet', 'Trajet → école', s - t, s);
-      add('cours', ex ? ex.name : 'Cours — BTS SIO', s, e, ex ? { exam: true } : null);
-      add('trajet', 'Trajet → maison', e, e + t);
+      const t = +c.school || 0;
+      const list = !ov && cfg.courses && cfg.courses[d];
+      if (list && list.length) {
+        const s0 = Math.min(...list.map(x => toMin(x.start))), e0 = Math.max(...list.map(x => toMin(x.end)));
+        add('trajet', 'Trajet → école', s0 - t, s0);
+        list.forEach(x => add('cours', x.title, toMin(x.start), toMin(x.end), { notes: x.notes || '', exam: !!x.exam, subject: x.subject || null }));
+        add('trajet', 'Trajet → maison', e0, e0 + t);
+      } else {
+        const sh = ov || cfg.school;
+        const s = toMin(sh.start), e = toMin(sh.end);
+        const ex = examOn(cfg, d);
+        add('trajet', 'Trajet → école', s - t, s);
+        add('cours', ex ? ex.name : 'Cours — BTS SIO', s, e, ex ? { exam: true } : null);
+        add('trajet', 'Trajet → maison', e, e + t);
+      }
     }
     if (cfg.sleep && cfg.sleep.enabled) {
       const b = toMin(cfg.sleep.bed), w = toMin(cfg.sleep.wake);
@@ -68,7 +77,11 @@
     const code = dayCode(cfg, d), c = cfg.commute || {};
     const ov = (cfg.dayHours && cfg.dayHours[d]) || null;
     if (code === 'ENT') return toMin((ov || cfg.work).end) + (+c.work || 0);
-    if (code === 'ECO') return toMin((ov || cfg.school).end) + (+c.school || 0);
+    if (code === 'ECO') {
+      const list = !ov && cfg.courses && cfg.courses[d];
+      const end = list && list.length ? Math.max(...list.map(x => toMin(x.end))) : toMin((ov || cfg.school).end);
+      return end + (+c.school || 0);
+    }
     return null;
   }
 
@@ -77,7 +90,6 @@
     const R = cfg.rev, code = dayCode(cfg, d), wd = dow(d);
     const latest = toMin(R.latest);
     const res = [];
-    if (examOn(cfg, d)) return res;
     if (code === 'ENT' || code === 'ECO') {
       if (code === 'ECO' && wd === 4 && R.fridayOff) return res;
       const dur = code === 'ENT' ? +R.workEveningMin : +R.schoolEveningMin;
@@ -144,7 +156,10 @@
     uid = uid || (() => 'r' + Math.random().toString(36).slice(2, 10));
     const target = (cfg.exams || []).filter(e => e.start > fromDate).sort((a, b) => a.start < b.start ? -1 : 1)[0];
     if (!target) return { events: events.slice(), added: [], removed: [], unplanned: [] };
-    const endDate = addDays(target.start, -1);
+    // Échéance propre à chaque matière (date de son épreuve), sinon le prochain examen
+    const deadline = {};
+    (cfg.subjects || []).forEach(s => { deadline[s.id] = s.deadline && s.deadline > fromDate ? s.deadline : target.start; });
+    const endDate = addDays(Object.values(deadline).sort().pop() || target.start, -1);
     const keep = events.filter(e => !(e.cat === 'revision' && e.auto && !e.done && !e.locked && e.date >= fromDate));
     const removed = events.filter(e => !keep.includes(e));
     const doneKey = new Set(keep.filter(e => e.cat === 'revision' && e.subject).map(e => e.subject + '|' + e.chapter + '|' + e.rtype));
@@ -184,10 +199,11 @@
       const len = sl.b - sl.a;
       if (revMinutesOn(placed, sl.date) + len > +cfg.rev.maxDayMin) continue;
       if (!isFree(cfg, placed, sl.date, sl.a, sl.b)) continue;
-      const toEnd = diffDays(sl.date, target.start);
       let best = null, bestScore = -1;
       for (const t of tasks) {
         if (t.used) continue;
+        if (sl.date >= deadline[t.subject]) continue;
+        const toEnd = diffDays(sl.date, deadline[t.subject]);
         const rt = RTYPES[t.rtype];
         if (len < rt.min) continue;
         if (t.window && toEnd > t.window) continue;
