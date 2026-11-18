@@ -189,6 +189,11 @@ textarea{resize:vertical;min-height:70px}
 .diff{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;font-size:13px;max-height:320px;overflow:auto}
 .ds{font-family:var(--f-mono);font-size:12px;color:var(--muted);white-space:nowrap}
 .state{padding:40px 16px;text-align:center;color:var(--muted)}
+.vfoot{margin-top:18px;padding-top:12px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted)}
+.vfoot summary{cursor:pointer;display:flex;gap:8px;align-items:center;flex-wrap:wrap;list-style:none}
+.vfoot summary::-webkit-details-marker{display:none}
+.vfoot .vtag{font-family:var(--f-mono);font-size:12px;padding:2px 8px;border-radius:99px;background:var(--surface-2);color:var(--fg)}
+.vfoot ol{margin:8px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:3px}
 @media (prefers-reduced-motion:no-preference){.ev{transition:box-shadow .15s}.modal{animation:pop .16s ease-out}@keyframes pop{from{transform:translateY(8px);opacity:.6}}}
 @media (max-width:620px){.toolbar h2{font-size:18px;width:100%}.brand .sub{display:none}}
 </style>
@@ -329,6 +334,23 @@ function conflictWith(ev, ignoreId) {
     .filter(b => b.cat !== 'sommeil' && toMin(b.start) < e && s < toMin(b.end));
 }
 
+/* ---------- Version : à incrémenter à chaque modification ---------- */
+const APP = {
+  version: '1.3',
+  date: '2026-11-18',
+  history: [
+    ['1.3', '2026-11-18', 'Numéro de version affiché en bas de chaque page'],
+    ['1.2', '2026-11-18', 'Vrais cours importés (jusqu’au 5 mars), BTS blanc détaillé, contrôles 2027, révisions recalées sur chaque épreuve'],
+    ['1.1', '2026-11-18', 'Application installable, hors connexion, export et import'],
+    ['1.0', '2026-11-18', 'Première version : calendrier d’alternance, révisions du BTS blanc, tableau de bord']
+  ]
+};
+function versionFooter() {
+  const dv = S.cfg && S.cfg.version ? ' · données du planning v' + S.cfg.version : '';
+  return '<details class="vfoot"><summary><span class="vtag">Version ' + APP.version + '</span><span>mise à jour le ' + esc(longDate(APP.date)) + dv + ' · voir l’historique</span></summary><ol>' +
+    APP.history.map(([v, d, t]) => '<li><b class="mono">v' + v + '</b> · ' + esc(shortDate(d)) + ' — ' + esc(t) + '</li>').join('') + '</ol></details>';
+}
+
 /* ---------- Rendu ---------- */
 function render() {
   document.querySelectorAll('#tabs a').forEach(a => a.setAttribute('aria-current', a.dataset.tab === S.tab ? 'page' : 'false'));
@@ -341,7 +363,7 @@ function render() {
   }
   const html = { calendrier: viewCalendar, tableau: viewDashboard, revisions: viewRevisions, sport: viewSport, nutrition: viewNutrition, reglages: viewSettings }[S.tab]();
   const sy = window.scrollY; const cs = $('.cal-scroll'); const cst = cs ? cs.scrollTop : null, csl = cs ? cs.scrollLeft : null;
-  m.innerHTML = (S.seedUpdate ? '<div class="banner" style="border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--surface))"><span style="flex:1">Nouvelle version du planning disponible : tes vrais cours, le détail du BTS blanc et les contrôles de 2027. Tes réglages, ce que tu as coché et tes ajouts sont conservés.</span><button class="btn primary sm" data-seedupdate>Mettre à jour</button></div>' : '') + banners() + html;
+  m.innerHTML = (S.seedUpdate ? '<div class="banner" style="border-color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--surface))"><span style="flex:1">Nouvelle version du planning disponible : tes vrais cours, le détail du BTS blanc et les contrôles de 2027. Tes réglages, ce que tu as coché et tes ajouts sont conservés.</span><button class="btn primary sm" data-seedupdate>Mettre à jour</button></div>' : '') + banners() + html + versionFooter();
   const ncs = $('.cal-scroll');
   if (ncs) { if (cst != null && S._keepScroll) { ncs.scrollTop = cst; ncs.scrollLeft = csl; } else ncs.scrollTop = (7 - H0) * parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hour')); }
   S._keepScroll = true;
