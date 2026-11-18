@@ -1,0 +1,856 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#18202e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Planning Alternance SIO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout : barre d'onglets en haut, outil plein écran ; le calendrier est l'écran central, les autres sections s'y rattachent. */
+:root{
+  --bg:#f3f5f9; --surface:#ffffff; --surface-2:#eaeef5; --line:#d6dce7; --fg:#18202e; --muted:#5c6679; --accent:#3b4cca; --accent-fg:#ffffff;
+  --ok:#15803d; --warn:#b45309; --bad:#b91c1c;
+  --c-cours:#2563eb; --c-travail:#5d6675; --c-trajet:#0f7c8c; --c-revision:#7c3aed; --c-sport:#e2560f; --c-repas:#16a34a; --c-repos:#94a3b8; --c-rdv:#c2297a; --c-perso:#b7791f; --c-sommeil:#3f4a63;
+  --tint:16%; --tint-line:42%;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, Menlo, monospace;
+  --hour:44px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f131b; --surface:#171c26; --surface-2:#1f2633; --line:#2c3445; --fg:#e7ebf3; --muted:#9aa4b8; --accent:#8b97ff; --accent-fg:#0f131b;
+  --ok:#4ade80; --warn:#fbbf24; --bad:#f87171;
+  --c-cours:#5b8cff; --c-travail:#97a1b2; --c-trajet:#3cc3d4; --c-revision:#a78bfa; --c-sport:#ff8a4c; --c-repas:#4ade80; --c-repos:#7b8799; --c-rdv:#f472b6; --c-perso:#e8b04a; --c-sommeil:#8190b5;
+  --tint:24%; --tint-line:50%; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --bg:#0f131b; --surface:#171c26; --surface-2:#1f2633; --line:#2c3445; --fg:#e7ebf3; --muted:#9aa4b8; --accent:#8b97ff; --accent-fg:#0f131b;
+  --ok:#4ade80; --warn:#fbbf24; --bad:#f87171;
+  --c-cours:#5b8cff; --c-travail:#97a1b2; --c-trajet:#3cc3d4; --c-revision:#a78bfa; --c-sport:#ff8a4c; --c-repas:#4ade80; --c-repos:#7b8799; --c-rdv:#f472b6; --c-perso:#e8b04a; --c-sommeil:#8190b5;
+  --tint:24%; --tint-line:50%; color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.45 var(--f-body)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--surface)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3{font-family:var(--f-display);font-weight:700;margin:0;text-wrap:balance;letter-spacing:-.01em}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.gut{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+.top-row{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:10px;min-width:0}
+.brand h1{font-size:20px}
+.brand .sub{font-size:12px;color:var(--muted);white-space:nowrap}
+.sync{margin-left:auto;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.dot.ok{background:var(--ok)} .dot.warn{background:var(--warn)}
+nav.tabs{display:flex;gap:4px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none}
+nav.tabs a{padding:7px 12px;border-radius:8px;text-decoration:none;color:var(--muted);font-weight:500;white-space:nowrap;font-size:14px}
+nav.tabs a[aria-current="page"]{background:var(--fg);color:var(--bg)}
+nav.tabs a:hover{color:var(--fg)}
+
+main{padding-block:16px 48px;max-width:1400px;margin:0 auto}
+.banner{display:flex;gap:10px;align-items:flex-start;padding:10px 14px;border:1px solid color-mix(in srgb,var(--warn) 45%,var(--line));background:color-mix(in srgb,var(--warn) 9%,var(--surface));border-radius:10px;font-size:13.5px;margin-bottom:14px}
+.banner b{color:var(--warn)}
+.banner a{color:inherit}
+
+/* Barre d'outils calendrier */
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.toolbar h2{font-size:22px;margin-right:auto;min-width:0}
+.seg{display:inline-flex;background:var(--surface-2);border-radius:9px;padding:3px}
+.seg button{border:0;background:transparent;padding:6px 12px;border-radius:7px;font-weight:500;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgb(0 0 0 / .12)}
+.btn{border:1px solid var(--line);background:var(--surface);padding:7px 12px;border-radius:9px;font-weight:500;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn.danger{color:var(--bad)}
+.btn.sm{padding:4px 9px;font-size:13px}
+.icon-btn{width:34px;height:34px;justify-content:center;padding:0}
+
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--muted);margin:0 0 12px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:10px;height:10px;border-radius:3px;background:var(--c)}
+
+/* Semaine / jour */
+.cal-wrap{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.cal-scroll{overflow:auto;max-height:calc(100vh - 230px);min-height:420px;position:relative}
+.grid{display:grid;grid-template-columns:52px repeat(var(--cols),minmax(118px,1fr));min-width:calc(52px + var(--cols) * 118px)}
+.grid.day{grid-template-columns:52px minmax(0,1fr);min-width:0}
+.colhead{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line);border-left:1px solid var(--line);padding:8px 8px 6px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.colhead.corner{border-left:0}
+.colhead .dname{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:flex;justify-content:space-between;gap:4px}
+.colhead .dnum{font-family:var(--f-display);font-size:20px;font-weight:700;line-height:1}
+.colhead.today .dnum{color:var(--accent)}
+.colhead .meta{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.code{font-size:11px;font-weight:600;padding:2px 7px;border-radius:99px;border:1px solid var(--line);background:var(--surface-2);cursor:pointer;white-space:nowrap}
+.code[data-k="work"]{--c:var(--c-travail)} .code[data-k="school"]{--c:var(--c-cours)} .code[data-k="off"]{--c:var(--c-repas)} .code[data-k="weekend"]{--c:var(--c-repos)} .code[data-k="unknown"]{--c:var(--warn)} .code.exam{--c:var(--bad)}
+.code{border-color:color-mix(in srgb,var(--c,var(--line)) 50%,transparent);background:color-mix(in srgb,var(--c,var(--line)) 14%,var(--surface))}
+.free{font-size:11px;color:var(--muted)}
+.loadbar{height:4px;border-radius:2px;background:var(--surface-2);overflow:hidden}
+.loadbar i{display:block;height:100%;background:var(--c,var(--ok))}
+.hours{position:relative}
+.hours div{height:var(--hour);font-size:11px;color:var(--muted);text-align:right;padding-right:6px;transform:translateY(-7px)}
+.daycol{position:relative;border-left:1px solid var(--line);background-image:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--hour) - 1px),var(--line) calc(var(--hour) - 1px),var(--line) var(--hour));background-color:var(--surface)}
+.daycol.weekend{background-color:color-mix(in srgb,var(--surface-2) 55%,var(--surface))}
+.nowline{position:absolute;left:0;right:0;height:2px;background:var(--bad);z-index:4;pointer-events:none}
+.nowline::before{content:"";position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--bad)}
+.ev{position:absolute;border-radius:7px;padding:3px 6px;font-size:12px;line-height:1.25;overflow:hidden;cursor:pointer;
+  background:color-mix(in srgb,var(--c) var(--tint),var(--surface));border:1px solid color-mix(in srgb,var(--c) var(--tint-line),transparent);color:var(--fg);user-select:none;touch-action:none;display:flex;flex-direction:column;gap:1px}
+.ev .t{font-weight:600;display:flex;gap:5px;align-items:flex-start}
+.ev .t span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.ev .h{font-family:var(--f-mono);font-size:10.5px;color:var(--muted)}
+.ev .sub{color:var(--muted);font-size:11px}
+.ev.fixed{cursor:default;background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--c) var(--tint),var(--surface)) 0 8px,color-mix(in srgb,var(--c) calc(var(--tint) * .6),var(--surface)) 8px 16px)}
+.ev.sommeil{opacity:.75}
+.ev.done{opacity:.55}
+.ev.done .t span{text-decoration:line-through}
+.ev.missed{border-style:dashed;border-color:var(--bad)}
+.ev.dragging{z-index:10;box-shadow:0 8px 24px rgb(0 0 0 / .25);opacity:.92}
+.ev input[type=checkbox]{margin:1px 0 0;accent-color:var(--c);flex:none;width:14px;height:14px}
+.cat-cours{--c:var(--c-cours)} .cat-travail{--c:var(--c-travail)} .cat-trajet{--c:var(--c-trajet)} .cat-revision{--c:var(--c-revision)} .cat-sport{--c:var(--c-sport)} .cat-repas{--c:var(--c-repas)} .cat-repos{--c:var(--c-repos)} .cat-rdv{--c:var(--c-rdv)} .cat-perso{--c:var(--c-perso)} .cat-sommeil{--c:var(--c-sommeil)}
+.ev.exam{--c:var(--bad)}
+
+.day-layout{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px}
+@media (max-width:820px){.day-layout{grid-template-columns:1fr}}
+
+/* Mois */
+.month{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.month .mh{background:var(--surface-2);font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:6px 8px}
+.mcell{background:var(--surface);min-height:96px;padding:6px;display:flex;flex-direction:column;gap:4px;cursor:pointer;min-width:0;border:0;text-align:left}
+.mcell.out{background:color-mix(in srgb,var(--surface-2) 50%,var(--surface));color:var(--muted)}
+.mcell.today .n{background:var(--accent);color:var(--accent-fg);border-radius:6px;padding:0 5px}
+.mcell .n{font-family:var(--f-display);font-weight:700;font-size:15px;align-self:flex-start}
+.mcell .code{cursor:inherit;align-self:flex-start;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.mrow{display:flex;gap:3px;flex-wrap:wrap}
+.pill{font-size:10.5px;padding:1px 5px;border-radius:4px;background:color-mix(in srgb,var(--c) 18%,var(--surface));color:var(--fg);white-space:nowrap}
+@media (max-width:620px){.mcell{min-height:64px;padding:4px}.mcell .code{font-size:9.5px;padding:1px 4px}.pill{font-size:9.5px}.month .mh{padding:5px 4px;font-size:10px}}
+
+/* Cartes et panneaux */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
+.panel h3{font-size:16px;margin-bottom:10px;display:flex;align-items:center;gap:8px;justify-content:space-between}
+.stack{display:flex;flex-direction:column;gap:14px}
+@media (max-width:700px){.grid2>.panel{grid-column:auto!important}}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:14px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.kpi .l{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.kpi .v{font-family:var(--f-display);font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.kpi .s{font-size:12px;color:var(--muted)}
+.list{display:flex;flex-direction:column}
+.item{display:flex;align-items:center;gap:6px 10px;padding:8px 0;border-bottom:1px solid var(--line);min-width:0;flex-wrap:wrap}
+.item:last-child{border-bottom:0}
+.item .grow{flex:1 1 160px;min-width:0}
+.item .grow div{overflow-wrap:anywhere}
+.chip{font-size:11.5px;padding:2px 8px;border-radius:99px;background:var(--surface-2);white-space:nowrap}
+.chip.bad{background:color-mix(in srgb,var(--bad) 14%,var(--surface));color:var(--bad)}
+.chip.ok{background:color-mix(in srgb,var(--ok) 14%,var(--surface));color:var(--ok)}
+.chip.warn{background:color-mix(in srgb,var(--warn) 14%,var(--surface));color:var(--warn)}
+.empty{padding:18px;border:1px dashed var(--line);border-radius:10px;color:var(--muted);font-size:14px}
+.empty ul{margin:8px 0 0;padding-left:18px}
+.bars{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;align-items:end;height:200px;padding-top:6px}
+.bar{display:flex;flex-direction:column-reverse;height:100%;gap:1px;position:relative}
+.bar i{display:block;background:var(--c);border-radius:2px;min-height:0}
+.bars-x{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;font-size:11.5px;color:var(--muted);text-align:center;margin-top:6px}
+.bars-wrap{position:relative}
+.bars-wrap .gl{position:absolute;left:0;right:0;border-top:1px dashed var(--line);font-size:10px;color:var(--muted)}
+.bars-wrap .gl span{position:absolute;right:0;top:-14px;background:var(--surface);padding-left:4px}
+.prog{height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden}
+.prog i{display:block;height:100%;background:var(--c,var(--accent))}
+.subj{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.subj:last-child{border-bottom:0}
+.subj textarea{grid-column:1/-1}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted);min-width:0}
+label.f.inline{flex-direction:row;align-items:center;gap:8px;color:var(--fg);font-size:14px}
+input[type=text],input[type=date],input[type=time],input[type=number],select,textarea{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 9px;min-width:0;width:100%;color:var(--fg)}
+textarea{resize:vertical;min-height:70px}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:10px}
+
+/* Modale */
+.scrim{position:fixed;inset:0;background:rgb(10 14 22 / .45);z-index:50;display:flex;align-items:flex-end;justify-content:center;padding:16px;padding-bottom:max(16px,env(safe-area-inset-bottom,0px))}
+@media (min-width:700px){.scrim{align-items:center}}
+.modal{background:var(--surface);border:1px solid var(--line);border-radius:14px;width:min(560px,100%);max-height:calc(100vh - 40px);overflow:auto;padding:18px;display:flex;flex-direction:column;gap:12px}
+.modal h3{font-size:18px}
+.modal .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.note{font-size:13px;padding:8px 10px;border-radius:8px;background:var(--surface-2)}
+.note.err{background:color-mix(in srgb,var(--bad) 12%,var(--surface));color:var(--bad)}
+.note.okn{background:color-mix(in srgb,var(--ok) 12%,var(--surface))}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:10px;z-index:60;font-size:14px;max-width:calc(100% - 32px)}
+.diff{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;font-size:13px;max-height:320px;overflow:auto}
+.ds{font-family:var(--f-mono);font-size:12px;color:var(--muted);white-space:nowrap}
+.state{padding:40px 16px;text-align:center;color:var(--muted)}
+@media (prefers-reduced-motion:no-preference){.ev{transition:box-shadow .15s}.modal{animation:pop .16s ease-out}@keyframes pop{from{transform:translateY(8px);opacity:.6}}}
+@media (max-width:620px){.toolbar h2{font-size:18px;width:100%}.brand .sub{display:none}}
+</style>
+<style>html{height:100%}body{margin:0}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}[hidden]{display:none!important}img{max-width:100%}</style>
+</head>
+<body>
+
+
+<header class="top">
+  <div class="gut">
+    <div class="top-row">
+      <div class="brand"><h1>Planning Alternance SIO</h1><span class="sub">BTS SIO SISR · SNCF Réseau</span></div>
+      <div class="sync" id="sync"><span class="dot"></span><span>Chargement…</span></div>
+    </div>
+    <nav class="tabs" id="tabs">
+      <a href="#calendrier" data-tab="calendrier">Calendrier</a>
+      <a href="#tableau" data-tab="tableau">Tableau de bord</a>
+      <a href="#revisions" data-tab="revisions">Révisions</a>
+      <a href="#sport" data-tab="sport">Sport</a>
+      <a href="#nutrition" data-tab="nutrition">Nutrition</a>
+      <a href="#reglages" data-tab="reglages">Réglages</a>
+    </nav>
+  </div>
+</header>
+<main class="gut" id="main"><div class="state">Chargement de ton planning…</div></main>
+<div id="modal-root"></div>
+
+<script src="planner-core.js"></script>
+<script>window.PLANNER_SEED = {"cfg": {"calendarRange": {"from": "2026-11-01", "to": "2026-12-31"}, "commute": {"confirmed": false, "school": 0, "work": 0}, "days": {"2026-11-01": "F", "2026-11-04": "ECO", "2026-11-05": "ECO", "2026-11-06": "ECO", "2026-11-11": "F", "2026-11-12": "ECO", "2026-11-13": "ECO", "2026-11-19": "ECO", "2026-11-20": "ECO", "2026-11-23": "RU", "2026-11-24": "CON", "2026-11-25": "CON", "2026-11-26": "ECO", "2026-11-27": "ECO", "2026-12-03": "ECO", "2026-12-04": "ECO", "2026-12-10": "ECO", "2026-12-11": "ECO", "2026-12-14": "ECO", "2026-12-15": "ECO", "2026-12-16": "ECO", "2026-12-17": "ECO", "2026-12-18": "ECO", "2026-12-21": "RP", "2026-12-22": "CON", "2026-12-23": "CON", "2026-12-24": "CON", "2026-12-25": "F", "2026-12-28": "RP", "2026-12-29": "CON", "2026-12-30": "CON", "2026-12-31": "CON"}, "exams": [{"end": "2026-12-18", "id": "bts-blanc", "name": "BTS blanc", "note": "Ordre des épreuves à préciser", "start": "2026-12-14"}], "goals": [{"done": false, "id": "g1", "text": "Respecter les séances de révision prévues"}, {"done": false, "id": "g2", "text": "Faire un sujet type par matière avant le BTS blanc"}], "nutrition": null, "rev": {"breakAfterMin": 45, "eveningStart": "18:30", "freeDay": [["09:30", "11:00"], ["14:30", "16:00"]], "fridayOff": true, "holidayOff": false, "latest": "21:30", "levelsConfirmed": false, "maxDayMin": 180, "saturday": [["10:00", "11:30"], ["14:30", "16:00"]], "schoolEveningMin": 30, "sunday": [["10:00", "11:15"]], "workEveningMin": 45}, "school": {"end": "17:15", "start": "08:45"}, "sleep": {"bed": "23:00", "enabled": false, "wake": "07:00"}, "sport": null, "subjects": [{"chapters": ["Méthode de la synthèse de documents", "Écriture personnelle (argumentation)", "Thème 1 au programme", "Thème 2 au programme"], "code": "E1", "coef": 2, "id": "E1", "inExam": true, "level": 3, "name": "Culture générale et expression", "practice": true, "short": "Culture G"}, {"chapters": ["Compréhension écrite de documents techniques", "Expression écrite (mail, compte rendu)", "Vocabulaire IT et réseau", "Oral : présenter une situation pro"], "code": "E2", "coef": 2, "id": "E2", "inExam": true, "level": 3, "name": "Expression et communication en anglais", "practice": false, "short": "Anglais"}, {"chapters": ["Numération (binaire, hexa) et arithmétique", "Logique et algèbre de Boole", "Matrices et graphes", "Algorithmique appliquée (Python)"], "code": "E3", "coef": 3, "id": "E3", "inExam": true, "level": 3, "name": "Mathématiques pour l’informatique", "practice": true, "short": "Maths"}, {"chapters": ["Économie : numérique et entreprise", "Droit : contrats et responsabilité", "Droit : RGPD et données personnelles", "Management : organisation et SI", "Méthode : analyse de cas"], "code": "E4", "coef": 3, "id": "E4", "inExam": true, "level": 3, "name": "Culture économique, juridique et managériale", "practice": true, "short": "CEJM"}, {"chapters": ["Incidents et demandes (ITIL)", "Gestion de parc (GLPI)", "Portfolio et veille technologique", "Déploiement de services"], "code": "E5", "coef": 4, "id": "E5", "inExam": true, "level": 3, "name": "Support et mise à disposition de services informatiques", "practice": false, "short": "Support"}, {"chapters": ["VLAN, routage et adressage IP", "Services réseau : DHCP, DNS", "Windows Server et Active Directory", "Linux : administration", "Virtualisation et sauvegarde"], "code": "E6", "coef": 4, "id": "E6", "inExam": true, "level": 3, "name": "Administration des systèmes et réseaux (SISR)", "practice": true, "short": "Admin sys/réseau"}, {"chapters": ["Chiffrement, PKI et certificats", "Pare-feu, DMZ et VPN", "Durcissement et gestion des accès", "Analyse de risques et RGPD", "Journalisation et supervision"], "code": "E7", "coef": 4, "id": "E7", "inExam": true, "level": 3, "name": "Cybersécurité des services informatiques (SISR)", "practice": true, "short": "Cybersécurité"}], "version": 1, "work": {"end": "16:45", "start": "08:00"}}, "events": [{"auto": true, "cat": "revision", "chapter": "Incidents et demandes (ITIL)", "date": "2026-11-21", "done": false, "end": "11:30", "id": "r001", "rtype": "learn", "start": "10:00", "subject": "E5", "title": "E5 Support — Apprentissage + fiche"}, {"auto": true, "cat": "revision", "chapter": "VLAN, routage et adressage IP", "date": "2026-11-21", "done": false, "end": "16:00", "id": "r002", "rtype": "learn", "start": "14:30", "subject": "E6", "title": "E6 Admin sys/réseau — Apprentissage + fiche"}, {"auto": true, "cat": "revision", "chapter": "Chiffrement, PKI et certificats", "date": "2026-11-22", "done": false, "end": "11:15", "id": "r003", "rtype": "learn", "start": "10:00", "subject": "E7", "title": "E7 Cybersécurité — Apprentissage + fiche"}, {"auto": true, "cat": "revision", "chapter": "Numération (binaire, hexa) et arithmétique", "date": "2026-11-23", "done": false, "end": "11:00", "id": "r004", "rtype": "learn", "start": "09:30", "subject": "E3", "title": "E3 Maths — Apprentissage + fiche"}, {"auto": true, "cat": "revision", "chapter": "Économie : numérique et entreprise", "date": "2026-11-23", "done": false, "end": "16:00", "id": "r005", "rtype": "learn", "start": "14:30", "subject": "E4", "title": "E4 CEJM — Apprentissage + fiche"}, {"auto": true, "cat": "revision", "chapter": "VLAN, routage et adressage IP", "date": "2026-11-24", "done": false, "end": "11:00", "id": "r006", "rtype": "practice", "start": "09:30", "subject": "E6", "title": "E6 Admin sys/réseau — Exercices pratiques"}, {"auto": true, "cat": "revision", "chapter": "Chiffrement, PKI et certificats", "date": "2026-11-24", "done": false, "end": "16:00", "id": "r007", "rtype": "practice", "start": "14:30", "subject": "E7", "title": "E7 Cybersécurité — Exercices pratiques"}, {"auto": true, "cat": "revision", "chapter": "Gestion de parc (GLPI)", "date": "2026-11-25", "done": false, "end": "11:00", "id": "r008", "rtype": "learn", "start": "09:30", "subject": "E5", "title": "E5 Support — Apprentissage + fiche"}, {"auto": true, "cat": "revision", "chapter": "Méthode de la synthèse de documents", "date": "2026-11-25", "done": false, "end": "16:00", "id": "r009", "rtype": "learn", "start": "14:30", "subject": "E1", "title": "E1 Culture G — Apprentissage + fiche"}, {"auto": true, "cat": "revision", "chapter": "Incidents et demandes (ITIL)", "date": "2026-11-26", "done": false, "end": "19:00", "id": "r010", "rtype": "recall", "start": "18:30", "subject": "E5", "title": "E5 Support — Mémorisation — rappel actif"}, {"auto": true, "cat": "revision", "chapter": "Numération (binaire, hexa) et arithmétique", "date": "2026-11-28", "done": false, "end": "11:30", "id": "r011", "rtype": "practice", "start": "10:00", "subject": "E3", "title": "E3 Maths — Exercices pratiques"}, {"auto": true, "cat": "revision", "chapter": "Économie : numérique et entreprise", "date": "2026-11-28", "done": false, "end": "16:00", "id": "r012", "rtype": "practice", "start": "14:30", "subject": "E4", "title": "E4 CEJM — Exercices pratiques"}, {"auto": true, "cat": "revision", "chapter": "Compréhension écrite de documents techniques", "date": "2026-11-29", "done": false, "end": "11:15", "id": "r013", "rtype": "learn", "start": "10:00", "subject": "E2", "title": "E2 Anglais — Apprentissage + fiche"}, {"auto": true, "cat": "revision", "chapter": "VLAN, routage et adressage IP", "date": "2026-11-30", "done": false, "end": "19:15", "id": "r014", "rtype": "recall", "start": "18:30", "subject": "E6", "title": "E6 Admin sys/réseau — Mémorisation — rappel actif"}, {"auto": true, "cat": "revision", "chapter": "Chiffrement, PKI et certificats", "date": "2026-12-01", "done": false, "end": "19:15", "id": "r015", "rtype": "recall", "start": "18:30", "subject": "E7", "title": "E7 Cybersécurité — Mémorisation — rappel actif"}, {"auto": true, "cat": "revision", "chapter": "Gestion de parc (GLPI)", "date": "2026-12-02", "done": false, "end": "19:15", "id": "r016", "rtype": "recall", "start": "18:30", "subject": "E5", "title": "E5 Support — Mémorisation — rappel actif"}, {"auto": true, "cat": "revision", "chapter": "Numération (binaire, hexa) et arithmétique", "date": "2026-12-03", "done": false, "end": "19:00", "id": "r017", "rtype": "recall", "start": "18:30", "subject": "E3", "title": "E3 Maths — Mémorisation — rappel actif"}, {"auto": true, "cat": "revision", "chapter": "Méthode de la synthèse de documents", "date": "2026-12-05", "done": false, "end": "11:30", "id": "r018", "rtype": "practice", "start": "10:00", "subject": "E1", "title": "E1 Culture G — Exercices pratiques"}, {"auto": true, "cat": "revision", "chapter": "Sujet type", "date": "2026-12-05", "done": false, "end": "16:00", "id": "r019", "rtype": "mock", "start": "14:30", "subject": "E6", "title": "E6 Admin sys/réseau — Entraînement type examen"}, {"auto": true, "cat": "revision", "chapter": "Sujet type", "date": "2026-12-06", "done": false, "end": "11:15", "id": "r020", "rtype": "mock", "start": "10:00", "subject": "E7", "title": "E7 Cybersécurité — Entraînement type examen"}, {"auto": true, "cat": "revision", "chapter": "Économie : numérique et entreprise", "date": "2026-12-07", "done": false, "end": "19:15", "id": "r021", "rtype": "recall", "start": "18:30", "subject": "E4", "title": "E4 CEJM — Mémorisation — rappel actif"}, {"auto": true, "cat": "revision", "chapter": "Compréhension écrite de documents techniques", "date": "2026-12-08", "done": false, "end": "19:15", "id": "r022", "rtype": "recall", "start": "18:30", "subject": "E2", "title": "E2 Anglais — Mémorisation — rappel actif"}, {"auto": true, "cat": "revision", "chapter": "Incidents et demandes (ITIL)", "date": "2026-12-09", "done": false, "end": "19:15", "id": "r023", "rtype": "recall2", "start": "18:30", "subject": "E5", "title": "E5 Support — Rappel espacé (J+7)"}, {"auto": true, "cat": "revision", "chapter": "VLAN, routage et adressage IP", "date": "2026-12-10", "done": false, "end": "19:00", "id": "r024", "rtype": "recall2", "start": "18:30", "subject": "E6", "title": "E6 Admin sys/réseau — Rappel espacé (J+7)"}, {"auto": true, "cat": "revision", "chapter": "Sujet type", "date": "2026-12-12", "done": false, "end": "11:30", "id": "r025", "rtype": "mock", "start": "10:00", "subject": "E3", "title": "E3 Maths — Entraînement type examen"}, {"auto": true, "cat": "revision", "chapter": "Sujet type", "date": "2026-12-12", "done": false, "end": "16:00", "id": "r026", "rtype": "mock", "start": "14:30", "subject": "E4", "title": "E4 CEJM — Entraînement type examen"}, {"auto": true, "cat": "revision", "chapter": "Sujet type", "date": "2026-12-13", "done": false, "end": "11:15", "id": "r027", "rtype": "mock", "start": "10:00", "subject": "E5", "title": "E5 Support — Entraînement type examen"}]};</script>
+<script>
+(() => {
+const C = window.PlannerCore;
+const { toMin, toHM, addDays, dow, diffDays, parse, fmt, CODES, RTYPES } = C;
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const uid = () => 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const H0 = 6, H1 = 24;
+const CATS = {
+  cours: 'Cours', travail: 'Travail', trajet: 'Déplacement', revision: 'Révision', sport: 'Sport', repas: 'Repas', repos: 'Repos / temps libre', rdv: 'Rendez-vous', perso: 'Obligation perso', sommeil: 'Sommeil'
+};
+const CHECKABLE = new Set(['revision', 'sport', 'repas', 'perso', 'rdv', 'repos']);
+const PROTECTED = new Set(['travail', 'cours']);
+const JOURS = ['lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim'];
+const JOURS_L = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
+const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+const localToday = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+const nowMin = () => { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); };
+const mondayOf = d => addDays(d, -dow(d));
+const longDate = d => JOURS_L[dow(d)] + ' ' + +d.slice(8) + ' ' + MOIS[+d.slice(5, 7) - 1];
+const MOIS_C = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+const shortDate = d => JOURS[dow(d)] + ' ' + +d.slice(8) + ' ' + MOIS_C[+d.slice(5, 7) - 1];
+const hrs = m => { const h = m / 60; return (Math.round(h * 10) / 10).toString().replace('.', ',') + ' h'; };
+const dur = e => toMin(e.end) - toMin(e.start);
+
+const S = {
+  cfg: null, events: [], loaded: { cfg: false, ev: false }, mode: 'connecting',
+  tab: 'calendrier', view: matchMedia('(max-width: 700px)').matches ? 'day' : 'week', cursor: localToday(),
+  modal: null, shopChecked: {}
+};
+try { const v = localStorage.getItem('pl-view'); if (v) S.view = v; S.shopChecked = JSON.parse(localStorage.getItem('pl-shop') || '{}'); } catch (e) {}
+
+/* ---------- Stockage local (sur cet appareil) ---------- */
+const KEY = 'pl-data-v1';
+function persist() {
+  try { localStorage.setItem(KEY, JSON.stringify({ cfg: S.cfg, events: S.events, savedAt: new Date().toISOString() })); setSync('ok'); }
+  catch (e) { setSync('err'); toast('Enregistrement impossible : la mémoire du navigateur est pleine ou bloquée.'); }
+}
+function saveCfg() { persist(); }
+function saveEvents() { persist(); }
+function setSync(state) {
+  const el = $('#sync'); if (!el) return;
+  const map = { ok: ['ok', 'Enregistré sur cet appareil'], err: ['', 'Non enregistré'] };
+  const [cls, txt] = map[state] || map.ok;
+  el.innerHTML = '<span class="dot ' + cls + '"></span><span>' + txt + '</span>';
+}
+function initStore() {
+  let data = null;
+  try { data = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+  if (!data || !data.cfg) { data = JSON.parse(JSON.stringify(window.PLANNER_SEED)); S.cfg = data.cfg; S.events = data.events; persist(); }
+  else { S.cfg = data.cfg; S.events = data.events || []; setSync('ok'); }
+  S.loaded.cfg = true; S.loaded.ev = true; S.mode = 'local'; render();
+}
+function exportData() {
+  const blob = new Blob([JSON.stringify({ app: 'planning-alternance-sio', version: 1, cfg: S.cfg, events: S.events, exportedAt: new Date().toISOString() }, null, 1)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'planning-' + localToday() + '.json';
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  toast('Sauvegarde téléchargée');
+}
+function importData(file) {
+  const r = new FileReader();
+  r.onload = () => {
+    try { const d = JSON.parse(r.result); if (!d.cfg || !Array.isArray(d.events)) throw new Error('format'); S.cfg = d.cfg; S.events = d.events; persist(); render(); toast('Planning importé'); }
+    catch (e) { toast('Ce fichier n’est pas une sauvegarde de planning valide.'); }
+  };
+  r.readAsText(file);
+}
+
+/* ---------- Données dérivées ---------- */
+function itemsOn(d) {
+  const fixed = C.fixedBlocks(S.cfg, d);
+  const evs = S.events.filter(e => e.date === d);
+  return fixed.concat(evs).sort((a, b) => toMin(a.start) - toMin(b.start));
+}
+function isMissed(e) {
+  if (e.fixed || e.done || !CHECKABLE.has(e.cat) || e.cat === 'repas' || e.cat === 'repos') return false;
+  const t = localToday();
+  return e.date < t || (e.date === t && toMin(e.end) < nowMin());
+}
+function engagedMin(d) {
+  return itemsOn(d).filter(e => e.cat !== 'sommeil' && e.cat !== 'repos' && e.cat !== 'repas').reduce((t, e) => t + dur(e), 0);
+}
+function freeMin(d) {
+  // Temps libre entre 7h et 22h (ou heures de réveil/coucher si renseignées)
+  const sl = S.cfg.sleep && S.cfg.sleep.enabled ? S.cfg.sleep : null;
+  const a = sl ? toMin(sl.wake) : 7 * 60, b = sl ? toMin(sl.bed) : 22 * 60;
+  const busy = itemsOn(d).filter(e => e.cat !== 'sommeil' && e.cat !== 'repos').map(e => [Math.max(a, toMin(e.start)), Math.min(b, toMin(e.end))]).filter(([x, y]) => y > x).sort((x, y) => x[0] - y[0]);
+  let used = 0, cur = a;
+  busy.forEach(([x, y]) => { if (y > cur) { used += y - Math.max(x, cur); cur = Math.max(cur, y); } });
+  return b - a - used;
+}
+function subjOf(id) { return (S.cfg.subjects || []).find(s => s.id === id); }
+function codeInfo(d) { const c = C.dayCode(S.cfg, d); return { c, ...(CODES[c] || CODES.NA), exam: C.examOn(S.cfg, d) }; }
+function conflictWith(ev, ignoreId) {
+  const s = toMin(ev.start), e = toMin(ev.end);
+  return C.fixedBlocks(S.cfg, ev.date).concat(S.events.filter(x => x.date === ev.date && x.id !== ignoreId))
+    .filter(b => b.cat !== 'sommeil' && toMin(b.start) < e && s < toMin(b.end));
+}
+
+/* ---------- Rendu ---------- */
+function render() {
+  document.querySelectorAll('#tabs a').forEach(a => a.setAttribute('aria-current', a.dataset.tab === S.tab ? 'page' : 'false'));
+  const m = $('#main');
+  if (!S.loaded.cfg) { m.innerHTML = '<div class="state">Chargement de ton planning…</div>'; return; }
+  if (!S.cfg) {
+    m.innerHTML = '<div class="panel" style="max-width:560px;margin:40px auto"><h3>Ton planning n’est pas encore initialisé</h3><p class="muted">' +
+      'Importe une sauvegarde depuis les réglages.' + '</p></div>';
+    return;
+  }
+  const html = { calendrier: viewCalendar, tableau: viewDashboard, revisions: viewRevisions, sport: viewSport, nutrition: viewNutrition, reglages: viewSettings }[S.tab]();
+  const sy = window.scrollY; const cs = $('.cal-scroll'); const cst = cs ? cs.scrollTop : null, csl = cs ? cs.scrollLeft : null;
+  m.innerHTML = banners() + html;
+  const ncs = $('.cal-scroll');
+  if (ncs) { if (cst != null && S._keepScroll) { ncs.scrollTop = cst; ncs.scrollLeft = csl; } else ncs.scrollTop = (7 - H0) * parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hour')); }
+  S._keepScroll = true;
+  window.scrollTo(0, sy);
+  renderModal();
+}
+
+function banners() {
+  const c = S.cfg, todo = [];
+  if (!c.commute || !c.commute.confirmed) todo.push('tes <b>temps de trajet</b> (comptés à 0 min pour l’instant)');
+  if (!c.rev || !c.rev.levelsConfirmed) todo.push('ton <b>niveau par matière</b> (tout est à 3/5)');
+  if (!c.sleep || !c.sleep.enabled) todo.push('tes <b>heures de sommeil</b>');
+  const t = localToday();
+  if (c.calendarRange && t > addDays(c.calendarRange.to, -21)) todo.push('ton <b>calendrier d’alternance 2027</b> (connu jusqu’au ' + longDate(c.calendarRange.to) + ')');
+  if (!todo.length || S.tab === 'reglages') return '';
+  return '<div class="banner"><span>À compléter pour un planning exact : ' + todo.join(', ') + '. <a href="#reglages">Ouvrir les réglages</a></span></div>';
+}
+
+/* ---- Calendrier ---- */
+function viewCalendar() {
+  const d = S.cursor;
+  let title;
+  if (S.view === 'week') { const m = mondayOf(d), e = addDays(m, 6); title = 'Semaine du ' + +m.slice(8) + (m.slice(5, 7) !== e.slice(5, 7) ? ' ' + MOIS[+m.slice(5, 7) - 1] : '') + ' au ' + +e.slice(8) + ' ' + MOIS[+e.slice(5, 7) - 1]; }
+  else if (S.view === 'month') title = MOIS[+d.slice(5, 7) - 1] + ' ' + d.slice(0, 4);
+  else title = longDate(d);
+  title = title.charAt(0).toUpperCase() + title.slice(1);
+  const tb = '<div class="toolbar"><h2>' + esc(title) + '</h2>' +
+    '<button class="btn icon-btn" data-act="prev" aria-label="Précédent">‹</button><button class="btn" data-act="today">Aujourd’hui</button><button class="btn icon-btn" data-act="next" aria-label="Suivant">›</button>' +
+    '<div class="seg" role="group" aria-label="Vue">' + [['day', 'Jour'], ['week', 'Semaine'], ['month', 'Mois']].map(([k, l]) => '<button data-view="' + k + '" aria-pressed="' + (S.view === k) + '">' + l + '</button>').join('') + '</div>' +
+    '<button class="btn" data-act="replan">Réorganiser</button><button class="btn primary" data-act="add">+ Ajouter</button></div>';
+  const legend = '<div class="legend">' + Object.entries(CATS).map(([k, l]) => '<span class="cat-' + k + '"><i class="sw"></i>' + l + '</span>').join('') + '<span><i class="sw" style="--c:transparent;border:1px dashed var(--bad)"></i>Manquée</span></div>';
+  if (S.view === 'month') return tb + legend + viewMonth();
+  if (S.view === 'day') return tb + legend + '<div class="day-layout"><div>' + timeGrid([d]) + '</div>' + dayPanel(d) + '</div>';
+  const m = mondayOf(d);
+  return tb + legend + timeGrid(Array.from({ length: 7 }, (_, i) => addDays(m, i)));
+}
+
+function layoutLanes(items) {
+  const res = []; let cluster = [], clusterEnd = -1;
+  const flush = () => { const lanes = []; cluster.forEach(it => { let l = lanes.findIndex(end => end <= toMin(it.start)); if (l < 0) { l = lanes.length; lanes.push(0); } lanes[l] = toMin(it.end); it._lane = l; }); cluster.forEach(it => { it._lanes = lanes.length; res.push(it); }); cluster = []; };
+  items.forEach(it => { if (toMin(it.start) >= clusterEnd && cluster.length) { flush(); clusterEnd = -1; } cluster.push(it); clusterEnd = Math.max(clusterEnd, toMin(it.end)); });
+  if (cluster.length) flush();
+  return res;
+}
+
+function evBlock(e) {
+  const H = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hour')) || 44;
+  const s = Math.max(toMin(e.start), H0 * 60), en = Math.min(toMin(e.end), H1 * 60);
+  if (en <= s) return '';
+  const top = (s - H0 * 60) * H / 60, h = Math.max(18, (en - s) * H / 60 - 2);
+  const w = 100 / e._lanes, left = e._lane * w;
+  const cls = ['ev', 'cat-' + e.cat, e.fixed ? 'fixed' : '', e.done ? 'done' : '', isMissed(e) ? 'missed' : '', e.exam ? 'exam' : '', e.cat === 'sommeil' ? 'sommeil' : ''].join(' ');
+  const chk = !e.fixed && CHECKABLE.has(e.cat) ? '<input type="checkbox" data-done="' + e.id + '" ' + (e.done ? 'checked' : '') + ' aria-label="Marquer comme fait">' : '';
+  const s2 = subjOf(e.subject);
+  const sub = e.cat === 'revision' && e.chapter ? '<div class="sub">' + esc(e.chapter) + '</div>' : (e.notes && h > 50 ? '<div class="sub">' + esc(e.notes.split('\n')[0]) + '</div>' : '');
+  const title = e.cat === 'revision' && s2 ? s2.code + ' ' + s2.short + ' · ' + (RTYPES[e.rtype] ? RTYPES[e.rtype].label : '') : e.title;
+  return '<div class="' + cls + '" style="top:' + top + 'px;height:' + h + 'px;left:calc(' + left + '% + 2px);width:calc(' + w + '% - 4px)" ' + (e.fixed ? 'data-fixed="' + e.date + '"' : 'data-id="' + e.id + '"') + ' title="' + esc(title + ' — ' + e.start + '–' + e.end) + '">' +
+    '<div class="t">' + chk + '<span>' + esc(title) + '</span></div><div class="h">' + e.start + '–' + e.end + (isMissed(e) ? ' · manquée' : '') + '</div>' + (h > 40 ? sub : '') + '</div>';
+}
+
+function timeGrid(dates) {
+  const t = localToday();
+  const day = dates.length === 1;
+  let head = '<div class="colhead corner"></div>';
+  let cols = '';
+  dates.forEach(d => {
+    const ci = codeInfo(d), eng = engagedMin(d), fr = freeMin(d);
+    const load = Math.min(100, eng / (12 * 60) * 100), lc = eng > 11 * 60 ? 'var(--bad)' : eng > 9 * 60 ? 'var(--warn)' : 'var(--ok)';
+    head += '<div class="colhead' + (d === t ? ' today' : '') + '"><div class="dname"><span>' + JOURS[dow(d)] + '</span>' + (day ? '' : '<button class="btn ghost sm" style="padding:0 4px" data-goday="' + d + '" aria-label="Voir la journée">↗</button>') + '</div><div class="dnum">' + +d.slice(8) + '</div>' +
+      '<div class="meta"><button class="code' + (ci.exam ? ' exam' : '') + '" data-k="' + ci.kind + '" data-daytype="' + d + '">' + esc(ci.exam ? ci.exam.name : ci.label) + '</button></div>' +
+      '<div class="free">' + hrs(eng) + ' engagées · ' + hrs(fr) + ' libres</div><div class="loadbar"><i style="width:' + load + '%;--c:' + lc + '"></i></div></div>';
+    const items = layoutLanes(itemsOn(d).filter(e => !e.allDay));
+    const now = d === t ? (nowMin() - H0 * 60) : -1;
+    cols += '<div class="daycol' + (dow(d) >= 5 ? ' weekend' : '') + '" data-date="' + d + '" style="height:calc(var(--hour) * ' + (H1 - H0) + ')">' + items.map(evBlock).join('') +
+      (now > 0 && now < (H1 - H0) * 60 ? '<div class="nowline" style="top:calc(var(--hour) * ' + (now / 60) + ')"></div>' : '') + '</div>';
+  });
+  let hours = '<div class="hours">' + Array.from({ length: H1 - H0 }, (_, i) => '<div>' + (i ? (H0 + i) + 'h' : '') + '</div>').join('') + '</div>';
+  return '<div class="cal-wrap"><div class="cal-scroll"><div class="grid' + (day ? ' day' : '') + '" style="--cols:' + dates.length + '">' + head + hours + cols + '</div></div></div>';
+}
+
+function dayPanel(d) {
+  const items = itemsOn(d).filter(e => e.cat !== 'sommeil');
+  const ci = codeInfo(d);
+  const revs = items.filter(e => e.cat === 'revision' && !e.done);
+  return '<div class="stack"><div class="panel"><h3>Programme du jour <button class="code' + (ci.exam ? ' exam' : '') + '" data-k="' + ci.kind + '" data-daytype="' + d + '">' + esc(ci.exam ? ci.exam.name : ci.label) + '</button></h3><div class="list">' +
+    (items.length ? items.map(e => {
+      const s = subjOf(e.subject);
+      return '<div class="item cat-' + e.cat + '"><i class="sw"></i><span class="ds">' + e.start + '–' + e.end + '</span><div class="grow"><div>' + esc(e.cat === 'revision' && s ? s.name : e.title) + '</div>' +
+        (e.cat === 'revision' ? '<div class="muted" style="font-size:12.5px">' + esc(e.chapter || '') + ' · ' + esc(RTYPES[e.rtype] ? RTYPES[e.rtype].label : '') + ' · ' + dur(e) + ' min</div>' : '') +
+        (e.notes ? '<div class="muted" style="font-size:12.5px;white-space:pre-line">' + esc(e.notes) + '</div>' : '') + '</div>' +
+        (!e.fixed ? (CHECKABLE.has(e.cat) ? '<input type="checkbox" data-done="' + e.id + '" ' + (e.done ? 'checked' : '') + ' aria-label="Fait">' : '') + '<button class="btn sm ghost" data-open="' + e.id + '">Modifier</button>' : '') + '</div>';
+    }).join('') : '<div class="empty">Rien de prévu. Journée libre.</div>') + '</div></div>' +
+    '<div class="panel"><h3>Fatigue ou imprévu ?</h3><p class="muted" style="margin:0 0 10px;font-size:13.5px">Je déplace les révisions non faites de cette journée vers les prochains créneaux libres, sans toucher au reste.</p>' +
+    '<button class="btn" data-lighten="' + d + '" ' + (revs.length ? '' : 'disabled') + '>Alléger cette journée (' + revs.length + ' séance' + (revs.length > 1 ? 's' : '') + ')</button></div></div>';
+}
+
+function viewMonth() {
+  const d = S.cursor, first = d.slice(0, 8) + '01', start = mondayOf(first), t = localToday();
+  let html = '<div class="month">' + JOURS.map(j => '<div class="mh">' + j + '</div>').join('');
+  for (let i = 0; i < 42; i++) {
+    const x = addDays(start, i);
+    if (i >= 35 && x.slice(5, 7) !== d.slice(5, 7)) break;
+    const ci = codeInfo(x), items = itemsOn(x).filter(e => !e.fixed);
+    const cnt = {}; items.forEach(e => { cnt[e.cat] = (cnt[e.cat] || 0) + 1; });
+    const eng = engagedMin(x), lc = eng > 11 * 60 ? 'var(--bad)' : eng > 9 * 60 ? 'var(--warn)' : 'var(--ok)';
+    const missed = items.filter(isMissed).length;
+    html += '<button class="mcell' + (x.slice(5, 7) !== d.slice(5, 7) ? ' out' : '') + (x === t ? ' today' : '') + '" data-goday="' + x + '"><span class="n">' + +x.slice(8) + '</span>' +
+      (ci.c !== 'WE' ? '<span class="code' + (ci.exam ? ' exam' : '') + '" data-k="' + ci.kind + '">' + esc(ci.exam ? ci.exam.name : ci.label) + '</span>' : '') +
+      '<span class="mrow">' + Object.entries(cnt).map(([k, n]) => '<span class="pill cat-' + k + '">' + n + ' ' + (k === 'revision' ? 'rév.' : CATS[k].toLowerCase().slice(0, 5)) + '</span>').join('') + (missed ? '<span class="pill" style="--c:var(--bad)">' + missed + ' manquée' + (missed > 1 ? 's' : '') + '</span>' : '') + '</span>' +
+      (eng ? '<span class="loadbar" style="margin-top:auto"><i style="width:' + Math.min(100, eng / 720 * 100) + '%;--c:' + lc + '"></i></span>' : '') + '</button>';
+  }
+  return html + '</div>';
+}
+
+/* ---- Tableau de bord ---- */
+function weekStats(m) {
+  const days = Array.from({ length: 7 }, (_, i) => addDays(m, i));
+  const st = { cours: 0, travail: 0, revision: 0, revisionDone: 0, sport: 0, sportDone: 0, repas: 0, checkable: 0, done: 0, due: 0, dueDone: 0, trajet: 0 };
+  const perDay = days.map(d => {
+    const by = {};
+    itemsOn(d).forEach(e => {
+      if (e.cat === 'sommeil') return;
+      by[e.cat] = (by[e.cat] || 0) + dur(e);
+      if (e.cat === 'cours' || e.cat === 'travail' || e.cat === 'trajet') st[e.cat] += dur(e);
+      if (e.cat === 'revision') { st.revision += dur(e); if (e.done) st.revisionDone += dur(e); }
+      if (e.cat === 'sport') { st.sport++; if (e.done) st.sportDone++; }
+      if (e.cat === 'repas') st.repas++;
+      if (!e.fixed && CHECKABLE.has(e.cat)) {
+        st.checkable++; if (e.done) st.done++;
+        const past = e.date < localToday() || (e.date === localToday() && toMin(e.end) <= nowMin());
+        if (past) { st.due++; if (e.done) st.dueDone++; }
+      }
+    });
+    return { d, by };
+  });
+  return { st, perDay, days };
+}
+
+function viewDashboard() {
+  const m = mondayOf(S.cursor), e = addDays(m, 6);
+  const { st, perDay } = weekStats(m);
+  const rate = st.due ? Math.round(st.dueDone / st.due * 100) : null;
+  const tb = '<div class="toolbar"><h2>Semaine du ' + +m.slice(8) + ' ' + MOIS[+m.slice(5, 7) - 1] + ' au ' + +e.slice(8) + ' ' + MOIS[+e.slice(5, 7) - 1] + '</h2><button class="btn icon-btn" data-act="prevw" aria-label="Semaine précédente">‹</button><button class="btn" data-act="today">Cette semaine</button><button class="btn icon-btn" data-act="nextw" aria-label="Semaine suivante">›</button></div>';
+  const k = (cat, l, v, s) => '<div class="kpi cat-' + cat + '"><span class="l"><i class="sw"></i>' + l + '</span><span class="v">' + v + '</span><span class="s">' + s + '</span></div>';
+  const kpis = '<div class="kpis">' +
+    k('cours', 'Cours', hrs(st.cours), 'à l’école') +
+    k('travail', 'Travail', hrs(st.travail), 'en entreprise') +
+    k('revision', 'Révisions', hrs(st.revision), hrs(st.revisionDone) + ' faites') +
+    k('sport', 'Sport', st.sport, st.sport ? st.sportDone + ' faite(s)' : 'programme à définir') +
+    k('repas', 'Repas planifiés', st.repas, st.repas ? 'cette semaine' : 'menus à définir') +
+    k('perso', 'Tâches accomplies', st.done + ' / ' + st.checkable, 'sur la semaine') +
+    '<div class="kpi"><span class="l">Taux de réalisation</span><span class="v" style="color:' + (rate == null ? 'var(--muted)' : rate >= 80 ? 'var(--ok)' : rate >= 50 ? 'var(--warn)' : 'var(--bad)') + '">' + (rate == null ? '—' : rate + ' %') + '</span><span class="s">' + (rate == null ? 'rien d’échu pour l’instant' : st.dueDone + ' sur ' + st.due + ' échues') + '</span></div></div>';
+
+  // Graphique empilé : heures par jour et catégorie (échelle 0–14 h)
+  const MAX = 14 * 60, order = ['travail', 'cours', 'trajet', 'revision', 'sport', 'rdv', 'perso', 'repas', 'repos'];
+  const bars = '<div class="bars-wrap">' + [4, 8, 12].map(h => '<div class="gl" style="bottom:' + (h * 60 / MAX * 200) + 'px"><span>' + h + ' h</span></div>').join('') +
+    '<div class="bars">' + perDay.map(p => '<div class="bar" title="' + esc(longDate(p.d)) + '">' + order.filter(c => p.by[c]).map(c => '<i class="cat-' + c + '" style="height:' + (Math.min(p.by[c], MAX) / MAX * 100) + '%" title="' + CATS[c] + ' : ' + hrs(p.by[c]) + '"></i>').join('') + '</div>').join('') + '</div></div>' +
+    '<div class="bars-x">' + perDay.map(p => '<span>' + JOURS[dow(p.d)] + ' ' + +p.d.slice(8) + '</span>').join('') + '</div>';
+
+  // Équilibre
+  const warn = [];
+  perDay.forEach(p => { const eng = engagedMin(p.d); if (eng > 11 * 60) warn.push(['bad', longDate(p.d) + ' : ' + hrs(eng) + ' engagées, journée trop chargée']); });
+  perDay.forEach(p => { const r = C.revMinutesOn(S.events, p.d); if (r > +S.cfg.rev.maxDayMin) warn.push(['warn', longDate(p.d) + ' : ' + hrs(r) + ' de révision, au-delà de ta limite']); });
+  if (!perDay.some(p => engagedMin(p.d) < 3 * 60)) warn.push(['warn', 'Aucune journée légère cette semaine : garde au moins une demi-journée de repos.']);
+  const late = S.events.filter(x => x.date >= m && x.date <= e && ['revision', 'sport'].includes(x.cat) && toMin(x.end) > 21 * 60 + 30);
+  if (late.length) warn.push(['warn', late.length + ' activité(s) finissent après 21 h 30, ça peut gêner le sommeil.']);
+  if (!S.cfg.sleep || !S.cfg.sleep.enabled) warn.push(['warn', 'Sommeil non renseigné : je ne peux pas encore le protéger dans le planning.']);
+  const bal = warn.length ? warn.map(([c, t]) => '<div class="item"><span class="chip ' + c + '">' + (c === 'bad' ? 'Surcharge' : 'Attention') + '</span><div class="grow">' + esc(t) + '</div></div>').join('') : '<div class="item"><span class="chip ok">Équilibrée</span><div class="grow">Pas de surcharge détectée cette semaine.</div></div>';
+
+  // Échéances
+  const t = localToday();
+  const dl = (S.cfg.exams || []).filter(x => (x.end || x.start) >= t).map(x => ({ d: x.start, t: x.name, s: x.note || '' }))
+    .concat(S.events.filter(x => x.cat === 'rdv' && x.date >= t).map(x => ({ d: x.date, t: x.title, s: x.start }))).sort((a, b) => a.d < b.d ? -1 : 1).slice(0, 6);
+  const dlHtml = dl.length ? dl.map(x => { const n = diffDays(t, x.d); return '<div class="item"><span class="chip ' + (n <= 7 ? 'bad' : n <= 21 ? 'warn' : '') + ' mono">' + (n <= 0 ? 'en cours' : 'J-' + n) + '</span><div class="grow"><div>' + esc(x.t) + '</div><div class="muted" style="font-size:12.5px">' + esc(longDate(x.d)) + (x.s ? ' · ' + esc(x.s) : '') + '</div></div></div>'; }).join('') : '<div class="empty">Aucune échéance à venir.</div>';
+
+  // Objectifs
+  const goals = (S.cfg.goals || []).map(g => '<div class="item"><input type="checkbox" data-goal="' + g.id + '" ' + (g.done ? 'checked' : '') + ' aria-label="Objectif atteint"><div class="grow" style="' + (g.done ? 'text-decoration:line-through;color:var(--muted)' : '') + '">' + esc(g.text) + '</div><button class="btn sm ghost" data-delgoal="' + g.id + '" aria-label="Supprimer l’objectif">✕</button></div>').join('');
+  const goalForm = '<form class="row" data-form="goal" style="margin-top:8px"><input type="text" id="goal-text" placeholder="Nouvel objectif de la semaine" style="flex:1" required><button class="btn">Ajouter</button></form>';
+
+  // Séances manquées
+  const missed = S.events.filter(isMissed).sort((a, b) => a.date < b.date ? -1 : 1);
+  const mHtml = missed.length ? missed.map(x => { const s = subjOf(x.subject); return '<div class="item cat-' + x.cat + '"><i class="sw"></i><div class="grow"><div>' + esc(x.cat === 'revision' && s ? s.code + ' ' + s.short + ' — ' + x.chapter : x.title) + '</div><div class="muted" style="font-size:12.5px">' + esc(shortDate(x.date)) + ' · ' + x.start + '–' + x.end + '</div></div><button class="btn sm" data-reslot="' + x.id + '">Replacer</button><button class="btn sm ghost" data-done="' + x.id + '">Faite</button></div>'; }).join('') : '<div class="empty">Aucune séance manquée. Continue comme ça.</div>';
+
+  return tb + kpis + '<div class="grid2"><div class="panel"><h3>Charge par jour</h3>' + bars + '<div class="legend" style="margin-top:10px">' + order.map(c => '<span class="cat-' + c + '"><i class="sw"></i>' + CATS[c] + '</span>').join('') + '</div></div>' +
+    '<div class="panel"><h3>Équilibre de la semaine</h3><div class="list">' + bal + '</div></div>' +
+    '<div class="panel"><h3>Prochaines échéances</h3><div class="list">' + dlHtml + '</div></div>' +
+    '<div class="panel"><h3>Objectifs de la semaine</h3><div class="list">' + goals + '</div>' + goalForm + '</div>' +
+    '<div class="panel" style="grid-column:span 2"><h3>Séances à replacer <span class="chip ' + (missed.length ? 'bad' : 'ok') + '">' + missed.length + '</span></h3><div class="list">' + mHtml + '</div></div></div>';
+}
+
+/* ---- Révisions ---- */
+function viewRevisions() {
+  const t = localToday();
+  const ex = (S.cfg.exams || []).filter(x => (x.end || x.start) >= t).sort((a, b) => a.start < b.start ? -1 : 1)[0];
+  const revs = S.events.filter(e => e.cat === 'revision');
+  const head = '<div class="toolbar"><h2>Révisions' + (ex ? ' · ' + esc(ex.name) + ' dans ' + diffDays(t, ex.start) + ' jours' : '') + '</h2><button class="btn" data-act="replan">Réorganiser les révisions</button></div>';
+  const totalW = (S.cfg.subjects || []).reduce((a, s) => a + s.coef * (6 - s.level), 0) || 1;
+  const subj = (S.cfg.subjects || []).map((s, i) => {
+    const mine = revs.filter(e => e.subject === s.id), done = mine.filter(e => e.done);
+    const pm = mine.reduce((a, e) => a + dur(e), 0), dm = done.reduce((a, e) => a + dur(e), 0);
+    const next = mine.filter(e => !e.done && e.date >= t).sort((a, b) => (a.date + a.start) < (b.date + b.start) ? -1 : 1)[0];
+    return '<div class="subj"><div style="min-width:0"><div style="font-weight:600"><span class="mono muted">' + esc(s.code) + '</span> ' + esc(s.name) + '</div><div class="muted" style="font-size:12.5px">Coef ' + s.coef + ' · priorité ' + Math.round(s.coef * (6 - s.level) / totalW * 100) + ' % · ' + hrs(dm) + ' faites sur ' + hrs(pm) + ' prévues' + (next ? ' · prochaine : ' + esc(shortDate(next.date)) + ' ' + next.start : '') + '</div>' +
+      '<div class="prog cat-revision" style="margin-top:6px"><i style="width:' + (pm ? dm / pm * 100 : 0) + '%"></i></div></div>' +
+      '<div class="row"><label class="f">Niveau (1 = difficile)<select id="lvl-' + s.id + '" data-lvl="' + i + '">' + [1, 2, 3, 4, 5].map(n => '<option ' + (n == s.level ? 'selected' : '') + '>' + n + '</option>').join('') + '</select></label></div>' +
+      '<textarea id="ch-' + s.id + '" data-chapters="' + i + '" aria-label="Chapitres ' + esc(s.short) + '" rows="' + Math.min(6, (s.chapters || []).length + 1) + '">' + esc((s.chapters || []).join('\n')) + '</textarea></div>';
+  }).join('');
+  const exams = (S.cfg.exams || []).map((x, i) => '<div class="item"><span class="chip ' + (x.start >= t ? 'warn' : '') + ' mono">' + (x.start >= t ? 'J-' + diffDays(t, x.start) : 'passé') + '</span><div class="grow"><div>' + esc(x.name) + '</div><div class="muted" style="font-size:12.5px">' + esc(longDate(x.start)) + (x.end && x.end !== x.start ? ' → ' + esc(longDate(x.end)) : '') + (x.note ? ' · ' + esc(x.note) : '') + '</div></div><button class="btn sm ghost" data-delexam="' + i + '">Supprimer</button></div>').join('');
+  const types = '<div class="list">' + Object.entries(RTYPES).map(([k, r]) => '<div class="item"><span class="chip">' + r.label + '</span><div class="grow muted" style="font-size:13px">' + ({ learn: 'Première approche du chapitre : tu lis le cours et tu rédiges une fiche courte.', practice: 'Exercices ou TP le lendemain au plus tôt, pour ancrer par la pratique.', recall: 'À J+2 : tu ressors la notion de mémoire (feuille blanche, flashcards), puis tu vérifies.', recall2: 'Vers J+7 : second rappel espacé, plus court.', mock: 'Dans les 9 derniers jours : sujet type en conditions réelles, chronométré.' }[k]) + '</div></div>').join('') + '</div>';
+  return head + '<div class="grid2"><div class="panel" style="grid-column:1/-1"><h3>Matières du BTS SIO SISR</h3><p class="muted" style="margin:0 0 4px;font-size:13.5px">Indique ton niveau par matière (1 = je galère, 5 = à l’aise) et ajuste les chapitres, un par ligne. Clique ensuite sur « Réorganiser » pour recalculer : plus une matière est difficile et lourde en coefficient, plus elle reçoit de séances.</p>' + subj + '</div>' +
+    '<div class="panel"><h3>Examens et contrôles</h3><div class="list">' + exams + '</div><form data-form="exam" class="form-grid" style="margin-top:10px"><label class="f">Nom<input type="text" id="ex-name" required placeholder="Contrôle de maths"></label><label class="f">Début<input type="date" id="ex-start" required></label><label class="f">Fin<input type="date" id="ex-end"></label><label class="f">Note<input type="text" id="ex-note" placeholder="Chapitres…"></label><button class="btn primary" style="align-self:end">Ajouter l’examen</button></form></div>' +
+    '<div class="panel"><h3>Méthode utilisée</h3>' + types + '</div></div>';
+}
+
+/* ---- Sport ---- */
+function viewSport() {
+  const m = mondayOf(S.cursor), e = addDays(m, 6);
+  const list = S.events.filter(x => x.cat === 'sport' && x.date >= m && x.date <= e).sort((a, b) => (a.date + a.start) < (b.date + b.start) ? -1 : 1);
+  const intro = S.cfg.sport ? '<div class="panel"><h3>Programme</h3><div style="white-space:pre-line">' + esc(S.cfg.sport.summary || '') + '</div></div>' :
+    '<div class="panel"><h3>Programme sportif à définir</h3><div class="empty">Pour te construire un programme adapté, il me faut :<ul><li>ton objectif (muscle, perte de poids, endurance, forme…)</li><li>ton niveau et ton ou tes sports</li><li>le lieu (salle, maison, extérieur) et ton matériel</li><li>le nombre de séances par semaine et les jours de repos voulus</li><li>tes blessures ou limitations éventuelles</li></ul><p style="margin:10px 0 0">Donne-les-moi dans la conversation : je placerai les séances (exercices, séries, répétitions, repos) dans tes créneaux libres, sans jamais toucher aux cours ni au travail.</p></div></div>';
+  const items = list.length ? list.map(x => '<div class="item cat-sport"><i class="sw"></i><div class="grow"><div>' + esc(x.title) + '</div><div class="muted" style="font-size:12.5px">' + esc(shortDate(x.date)) + ' · ' + x.start + '–' + x.end + '</div>' + (x.notes ? '<div style="font-size:13px;white-space:pre-line;margin-top:4px">' + esc(x.notes) + '</div>' : '') + '</div><input type="checkbox" data-done="' + x.id + '" ' + (x.done ? 'checked' : '') + ' aria-label="Séance faite"><button class="btn sm ghost" data-open="' + x.id + '">Modifier</button></div>').join('') : '<div class="empty">Aucune séance cette semaine.</div>';
+  return '<div class="toolbar"><h2>Sport</h2><button class="btn primary" data-add="sport">+ Séance</button></div><div class="grid2">' + intro + '<div class="panel"><h3>Séances de la semaine du ' + +m.slice(8) + ' ' + MOIS[+m.slice(5, 7) - 1] + '</h3><div class="list">' + items + '</div></div></div>';
+}
+
+/* ---- Nutrition ---- */
+function parseIng(line) {
+  const l = line.trim(); if (!l) return null;
+  const m = l.match(/^(\d+(?:[.,]\d+)?)\s*(kg|g|ml|cl|l|pcs?|x|tranches?|boîtes?|c\.?\s?à\s?s\.?|c\.?\s?à\s?c\.?)?\s+(?:de\s+|d['’]\s*)?(.+)$/i);
+  if (!m) return { q: null, u: '', n: l.toLowerCase() };
+  return { q: parseFloat(m[1].replace(',', '.')), u: (m[2] || '').toLowerCase(), n: m[3].toLowerCase() };
+}
+function viewNutrition() {
+  const m = mondayOf(S.cursor), e = addDays(m, 6);
+  const meals = S.events.filter(x => x.cat === 'repas' && x.date >= m && x.date <= e).sort((a, b) => (a.date + a.start) < (b.date + b.start) ? -1 : 1);
+  const agg = {};
+  meals.forEach(x => (x.ingredients || '').split('\n').map(parseIng).filter(Boolean).forEach(i => { const k = i.n + '|' + i.u; if (!agg[k]) agg[k] = { n: i.n, u: i.u, q: 0, free: i.q == null }; if (i.q != null) agg[k].q += i.q; }));
+  const wk = m; const checked = S.shopChecked[wk] || [];
+  const shop = Object.entries(agg).sort((a, b) => a[1].n < b[1].n ? -1 : 1).map(([k, i]) => '<label class="item" style="cursor:pointer"><input type="checkbox" data-shop="' + esc(k) + '" ' + (checked.includes(k) ? 'checked' : '') + '><span class="grow" style="' + (checked.includes(k) ? 'text-decoration:line-through;color:var(--muted)' : '') + '">' + esc(i.n) + '</span><span class="mono muted">' + (i.free ? '' : (Math.round(i.q * 10) / 10).toString().replace('.', ',') + ' ' + esc(i.u)) + '</span></label>').join('');
+  const intro = S.cfg.nutrition ? '<div class="panel"><h3>Mes repères</h3><div style="white-space:pre-line">' + esc(S.cfg.nutrition.summary || '') + '</div></div>' :
+    '<div class="panel"><h3>Menus à définir</h3><div class="empty">Pour te proposer des menus concrets (ingrédients, quantités, recettes simples, repas à emporter), il me faut :<ul><li>ton objectif et, si tu veux, ton âge, ta taille et ton poids</li><li>tes restrictions ou les aliments que tu n’aimes pas</li><li>ton budget courses par semaine</li><li>si tu as un micro-ondes ou une cuisine au travail et à l’école</li><li>le temps que tu peux consacrer à cuisiner (batch cooking ?)</li></ul><p style="margin:10px 0 0">En attendant, tu peux ajouter un repas avec ses ingrédients (un par ligne, par exemple « 200 g riz ») : la liste de courses se remplit toute seule.</p></div></div>';
+  const ml = meals.length ? meals.map(x => '<div class="item cat-repas"><i class="sw"></i><div class="grow"><div>' + esc(x.title) + '</div><div class="muted" style="font-size:12.5px">' + esc(shortDate(x.date)) + ' · ' + x.start + '</div></div><button class="btn sm ghost" data-open="' + x.id + '">Voir</button></div>').join('') : '<div class="empty">Aucun repas planifié cette semaine.</div>';
+  return '<div class="toolbar"><h2>Nutrition</h2><button class="btn icon-btn" data-act="prevw" aria-label="Semaine précédente">‹</button><button class="btn icon-btn" data-act="nextw" aria-label="Semaine suivante">›</button><button class="btn primary" data-add="repas">+ Repas</button></div><div class="grid2">' + intro +
+    '<div class="panel"><h3>Repas de la semaine du ' + +m.slice(8) + ' ' + MOIS[+m.slice(5, 7) - 1] + '</h3><div class="list">' + ml + '</div></div>' +
+    '<div class="panel"><h3>Liste de courses <span class="chip">' + Object.keys(agg).length + ' articles</span></h3><div class="list">' + (shop || '<div class="empty">La liste se génère à partir des ingrédients des repas de la semaine.</div>') + '</div></div></div>';
+}
+
+/* ---- Réglages ---- */
+function viewSettings() {
+  const c = S.cfg, R = c.rev;
+  const v = (id, val, type, extra) => '<input type="' + (type || 'text') + '" id="' + id + '" value="' + esc(val) + '" ' + (extra || '') + '>';
+  return '<div class="toolbar"><h2>Réglages</h2></div><form data-form="settings" class="stack">' +
+    '<div class="grid2"><div class="panel"><h3>Contraintes fixes</h3><div class="form-grid">' +
+    '<label class="f">Entreprise : début' + v('s-ws', c.work.start, 'time') + '</label><label class="f">Entreprise : fin' + v('s-we', c.work.end, 'time') + '</label>' +
+    '<label class="f">École : début' + v('s-ss', c.school.start, 'time') + '</label><label class="f">École : fin' + v('s-se', c.school.end, 'time') + '</label>' +
+    '<label class="f">Trajet travail (min, aller)' + v('s-cw', c.commute.work, 'number', 'min="0" max="240" step="5"') + '</label><label class="f">Trajet école (min, aller)' + v('s-cs', c.commute.school, 'number', 'min="0" max="240" step="5"') + '</label></div>' +
+    '<p class="muted" style="font-size:12.5px;margin:10px 0 0">Les jours d’entreprise et d’école viennent de ton calendrier d’alternance. Pour changer un jour (cours annulé, congé posé…), clique sur l’étiquette du jour dans le calendrier.</p></div>' +
+    '<div class="panel"><h3>Sommeil</h3><label class="f inline"><input type="checkbox" id="s-sl" ' + (c.sleep && c.sleep.enabled ? 'checked' : '') + '> Protéger mes heures de sommeil</label><div class="form-grid" style="margin-top:10px"><label class="f">Coucher' + v('s-bed', c.sleep ? c.sleep.bed : '23:00', 'time') + '</label><label class="f">Lever' + v('s-wake', c.sleep ? c.sleep.wake : '07:00', 'time') + '</label></div>' +
+    '<p class="muted" style="font-size:12.5px;margin:10px 0 0">Une fois coché, aucune activité ne sera placée sur ces heures.</p></div></div>' +
+    '<div class="panel"><h3>Créneaux de révision</h3><div class="form-grid">' +
+    '<label class="f">Pas avant (soir)' + v('r-es', R.eveningStart, 'time') + '</label><label class="f">Fin au plus tard' + v('r-lt', R.latest, 'time') + '</label>' +
+    '<label class="f">Pause après le retour (min)' + v('r-br', R.breakAfterMin, 'number', 'min="0" max="180" step="15"') + '</label>' +
+    '<label class="f">Soir après entreprise (min)' + v('r-we', R.workEveningMin, 'number', 'min="0" max="180" step="15"') + '</label>' +
+    '<label class="f">Soir après école (min)' + v('r-se', R.schoolEveningMin, 'number', 'min="0" max="180" step="15"') + '</label>' +
+    '<label class="f">Maximum par jour (min)' + v('r-mx', R.maxDayMin, 'number', 'min="30" max="480" step="15"') + '</label></div>' +
+    '<div class="row" style="margin-top:10px"><label class="f inline"><input type="checkbox" id="r-fo" ' + (R.fridayOff ? 'checked' : '') + '> Vendredi soir sans révision</label><label class="f inline"><input type="checkbox" id="r-ho" ' + (R.holidayOff ? 'checked' : '') + '> Pas de révision les jours fériés</label>' +
+    '<label class="f inline"><input type="checkbox" id="r-lc" ' + (R.levelsConfirmed ? 'checked' : '') + '> Mes niveaux par matière sont à jour</label><label class="f inline"><input type="checkbox" id="s-cc" ' + (c.commute.confirmed ? 'checked' : '') + '> Mes temps de trajet sont à jour</label></div>' +
+    '<p class="muted" style="font-size:12.5px;margin:10px 0 0">Jours libres : ' + R.freeDay.map(x => x.join('–')).join(' et ') + ' · Samedi : ' + R.saturday.map(x => x.join('–')).join(' et ') + ' · Dimanche : ' + R.sunday.map(x => x.join('–')).join(' et ') + ' (demande-moi pour les changer).</p></div>' +
+    '<div class="row"><button class="btn primary">Enregistrer les réglages</button><span class="muted" style="font-size:13px">Les révisions déjà placées ne bougent pas : utilise ensuite « Réorganiser » pour recalculer.</span></div></form>' +
+    '<div class="panel" style="margin-top:14px"><h3>Sauvegarde et transfert</h3><p class="muted" style="margin:0 0 10px;font-size:13.5px">Ton planning est enregistré sur cet appareil. Pour le copier sur un autre appareil (ou le donner à Claude pour qu’il l’adapte), exporte-le puis importe le fichier de l’autre côté.</p><div class="row"><button type="button" class="btn primary" data-export>Exporter mon planning</button><label class="btn" for="imp-file" style="cursor:pointer">Importer une sauvegarde</label><input type="file" id="imp-file" accept="application/json,.json" hidden></div></div>' +
+    '<div class="panel" style="margin-top:14px"><h3>Légende des catégories</h3><div class="legend">' + Object.entries(CATS).map(([k, l]) => '<span class="cat-' + k + '"><i class="sw"></i>' + l + '</span>').join('') + '</div></div>';
+}
+
+/* ---------- Modales ---------- */
+function openModal(m) { S.modal = m; renderModal(); }
+function closeModal() { S.modal = null; renderModal(); }
+function renderModal() {
+  const root = $('#modal-root'); const m = S.modal;
+  if (!m) { root.innerHTML = ''; return; }
+  let body = '';
+  if (m.type === 'event') body = modalEvent(m);
+  else if (m.type === 'daytype') body = modalDayType(m);
+  else if (m.type === 'proposal') body = modalProposal(m);
+  root.innerHTML = '<div class="scrim" data-scrim><div class="modal" role="dialog" aria-modal="true">' + body + '</div></div>';
+  const f = root.querySelector('input,select,textarea,button.primary'); if (f && !m.noFocus) { f.focus({ preventScroll: true }); m.noFocus = true; }
+}
+
+function modalEvent(m) {
+  const e = m.ev, isNew = !S.events.some(x => x.id === e.id);
+  const subjOpts = (S.cfg.subjects || []).map(s => '<option value="' + s.id + '" ' + (s.id === e.subject ? 'selected' : '') + '>' + esc(s.code + ' ' + s.short) + '</option>').join('');
+  return '<h3>' + (isNew ? 'Nouvel élément' : 'Modifier') + '</h3><form data-form="event" class="stack">' +
+    '<div class="form-grid"><label class="f" style="grid-column:1/-1">Titre<input type="text" id="ev-title" value="' + esc(e.title || '') + '" ' + (e.cat === 'revision' ? 'placeholder="Généré automatiquement"' : 'required') + '></label>' +
+    '<label class="f">Catégorie<select id="ev-cat">' + Object.entries(CATS).filter(([k]) => !['cours', 'travail', 'sommeil'].includes(k) || k === e.cat).map(([k, l]) => '<option value="' + k + '" ' + (k === e.cat ? 'selected' : '') + '>' + l + '</option>').join('') + '<option value="cours" ' + (e.cat === 'cours' ? 'selected' : '') + '>Cours (rattrapage, contrôle)</option></select></label>' +
+    '<label class="f">Date<input type="date" id="ev-date" value="' + e.date + '" required></label><label class="f">Début<input type="time" id="ev-start" value="' + e.start + '" step="900" required></label><label class="f">Fin<input type="time" id="ev-end" value="' + e.end + '" step="900" required></label></div>' +
+    (e.cat === 'revision' ? '<div class="form-grid"><label class="f">Matière<select id="ev-subj">' + subjOpts + '</select></label><label class="f">Type<select id="ev-rtype">' + Object.entries(RTYPES).map(([k, r]) => '<option value="' + k + '" ' + (k === e.rtype ? 'selected' : '') + '>' + r.label + '</option>').join('') + '</select></label><label class="f" style="grid-column:1/-1">Chapitre / sujet<input type="text" id="ev-chap" value="' + esc(e.chapter || '') + '"></label></div>' : '') +
+    '<label class="f">' + (e.cat === 'sport' ? 'Exercices, séries, répétitions, repos' : e.cat === 'repas' ? 'Recette / préparation' : 'Notes') + '<textarea id="ev-notes">' + esc(e.notes || '') + '</textarea></label>' +
+    (e.cat === 'repas' ? '<label class="f">Ingrédients (un par ligne, ex. « 200 g riz »)<textarea id="ev-ing">' + esc(e.ingredients || '') + '</textarea></label>' : '') +
+    (CHECKABLE.has(e.cat) ? '<label class="f inline"><input type="checkbox" id="ev-done" ' + (e.done ? 'checked' : '') + '> Terminé</label>' : '') +
+    (m.error ? '<div class="note err">' + esc(m.error) + '</div>' : '') +
+    (m.slot ? '<div class="note okn">Créneau libre proposé : <b>' + esc(longDate(m.slot.date)) + ', ' + m.slot.start + '–' + m.slot.end + '</b>. <button type="button" class="btn sm primary" data-applyslot>Déplacer ici</button></div>' : '') +
+    (m.noslot ? '<div class="note err">Aucun créneau libre dans les 3 prochaines semaines sans dépasser ta limite quotidienne.</div>' : '') +
+    '<div class="actions">' + (!isNew ? (m.confirmDel ? '<button type="button" class="btn danger" data-delete>Confirmer la suppression</button>' : '<button type="button" class="btn ghost danger" data-askdel>Supprimer</button>') : '') +
+    (!isNew && ['revision', 'sport'].includes(e.cat) ? '<button type="button" class="btn" data-findslot>Replacer ailleurs</button>' : '') +
+    '<span style="flex:1"></span><button type="button" class="btn ghost" data-close>Annuler</button><button class="btn primary">Enregistrer</button></div></form>';
+}
+
+function modalDayType(m) {
+  const d = m.date, ci = codeInfo(d), ov = (S.cfg.dayHours || {})[d];
+  const opts = ['ENT', 'ECO', 'CON', 'RU', 'RP', 'F', 'LIB'];
+  return '<h3>' + esc(longDate(d).replace(/^./, c => c.toUpperCase())) + '</h3><p class="muted" style="margin:0;font-size:13.5px">Cours annulé, congé posé, horaires décalés : change le type de journée. Les blocs fixes se recalculent tout de suite, et je te propose ensuite de réorganiser les révisions.</p>' +
+    '<form data-form="daytype" class="stack"><label class="f">Type de journée<select id="dt-code">' + opts.map(o => '<option value="' + o + '" ' + (o === ci.c ? 'selected' : '') + '>' + CODES[o].label + '</option>').join('') + (ci.c === 'WE' ? '<option value="WE" selected>Week-end</option>' : '') + '</select></label>' +
+    '<label class="f inline"><input type="checkbox" id="dt-ov" ' + (ov ? 'checked' : '') + '> Horaires différents ce jour-là</label><div class="form-grid"><label class="f">Début<input type="time" id="dt-s" value="' + esc(ov ? ov.start : (ci.c === 'ECO' ? S.cfg.school.start : S.cfg.work.start)) + '"></label><label class="f">Fin<input type="time" id="dt-e" value="' + esc(ov ? ov.end : (ci.c === 'ECO' ? S.cfg.school.end : S.cfg.work.end)) + '"></label></div>' +
+    '<div class="actions"><button type="button" class="btn ghost" data-close>Annuler</button><button class="btn primary">Appliquer</button></div></form>';
+}
+
+function modalProposal(m) {
+  const p = m.p;
+  const rows = p.changes.map(c => '<span class="ds">' + c.tag + '</span><span>' + c.text + '</span>').join('');
+  return '<h3>' + esc(m.title) + '</h3><p class="muted" style="margin:0;font-size:13.5px">' + esc(m.intro) + '</p>' +
+    (rows ? '<div class="diff">' + rows + '</div>' : '<div class="note">Aucun changement nécessaire : ton planning est déjà cohérent.</div>') +
+    (p.unplanned && p.unplanned.length ? '<div class="note">Faute de place avant l’échéance, ' + p.unplanned.length + ' séance(s) restent à caser : ' + esc(p.unplanned.slice(0, 6).map(u => (subjOf(u.subject) || {}).short + ' — ' + u.chapter).join(', ')) + (p.unplanned.length > 6 ? '…' : '') + '. Tu peux augmenter tes créneaux dans les réglages.</div>' : '') +
+    '<div class="actions"><button type="button" class="btn ghost" data-close>Ne rien changer</button>' + (rows ? '<button type="button" class="btn primary" data-applyprop>Appliquer</button>' : '') + '</div>';
+}
+
+/* ---------- Propositions ---------- */
+function evLabel(e) { const s = subjOf(e.subject); return (s ? s.code + ' ' + s.short : e.title) + (e.chapter ? ' — ' + e.chapter : '') + (e.rtype && RTYPES[e.rtype] ? ' (' + RTYPES[e.rtype].label.toLowerCase() + ')' : ''); }
+function proposeReplan(intro) {
+  const t = localToday();
+  const from = nowMin() > 17 * 60 ? addDays(t, 1) : t;
+  const r = C.generatePlan(S.cfg, S.events, from, uid);
+  const key = e => e.subject + '|' + e.chapter + '|' + e.rtype;
+  const oldBy = {}; r.removed.forEach(e => oldBy[key(e)] = e);
+  const changes = [];
+  r.added.forEach(e => {
+    const o = oldBy[key(e)];
+    if (o) { delete oldBy[key(e)]; if (o.date !== e.date || o.start !== e.start) changes.push({ tag: 'déplacée', text: esc(evLabel(e)) + ' : ' + esc(shortDate(o.date)) + ' ' + o.start + ' → <b>' + esc(shortDate(e.date)) + ' ' + e.start + '</b>' }); }
+    else changes.push({ tag: 'ajoutée', text: esc(evLabel(e)) + ' : <b>' + esc(shortDate(e.date)) + ' ' + e.start + '–' + e.end + '</b>' });
+  });
+  Object.values(oldBy).forEach(o => changes.push({ tag: 'retirée', text: esc(evLabel(o)) + ' (' + esc(shortDate(o.date)) + ') : plus de place utile, voir ci-dessous' }));
+  // Conserver les identifiants des séances qui ne bougent pas
+  const keepIds = {}; r.removed.forEach(o => keepIds[key(o) + o.date + o.start] = o.id);
+  r.events.forEach(e => { const k = key(e) + e.date + e.start; if (keepIds[k]) e.id = keepIds[k]; });
+  openModal({ type: 'proposal', title: 'Réorganisation proposée', intro: intro || ('Je recalcule les révisions à partir du ' + longDate(from) + ' jusqu’à ' + (r.target ? r.target.name : 'la prochaine échéance') + '. Les séances faites ou que tu as déplacées toi-même ne bougent pas.'), p: { changes, unplanned: r.unplanned, events: r.events } });
+}
+function proposeLighten(d) {
+  let evs = S.events.slice();
+  const changes = [];
+  evs.filter(e => e.date === d && e.cat === 'revision' && !e.done).forEach(e => {
+    const slot = C.findNextSlot(S.cfg, evs, addDays(d, 1), dur(e), { ignoreId: e.id, subject: e.subject });
+    if (slot) { evs = evs.map(x => x.id === e.id ? Object.assign({}, x, slot, { locked: true }) : x); changes.push({ tag: 'déplacée', text: esc(evLabel(e)) + ' → <b>' + esc(shortDate(slot.date)) + ' ' + slot.start + '</b>' }); }
+    else changes.push({ tag: 'inchangée', text: esc(evLabel(e)) + ' : aucun créneau libre trouvé' });
+  });
+  openModal({ type: 'proposal', title: 'Alléger le ' + longDate(d), intro: 'Les révisions de cette journée passent sur les prochains créneaux libres. Le reste de ta semaine ne bouge pas.', p: { changes, events: evs } });
+}
+
+/* ---------- Actions ---------- */
+function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3200); }
+function updateEvent(id, patch) { S.events = S.events.map(e => e.id === id ? Object.assign({}, e, patch) : e); saveEvents(); render(); }
+function newEvent(cat, date, start) {
+  const s = start || '18:00';
+  return { id: uid(), cat: cat || 'perso', date: date || S.cursor, start: s, end: toHM(Math.min(toMin(s) + 60, 23 * 60 + 45)), title: '', done: false, subject: cat === 'revision' ? (S.cfg.subjects[0] || {}).id : undefined, rtype: cat === 'revision' ? 'learn' : undefined, chapter: '' };
+}
+
+document.addEventListener('click', ev => {
+  const el = ev.target.closest('button,[data-goday],[data-scrim],a[data-tab],input[type=checkbox]');
+  if (!el) return;
+  if (el.matches('[data-scrim]')) { if (ev.target === el) closeModal(); return; }
+  if (el.matches('input[data-done]')) { ev.stopPropagation(); updateEvent(el.dataset.done, { done: el.checked }); return; }
+  if (el.matches('button[data-done]')) { updateEvent(el.dataset.done, { done: true }); return; }
+  if (el.matches('input[data-goal]')) { S.cfg.goals = S.cfg.goals.map(g => g.id === el.dataset.goal ? Object.assign({}, g, { done: el.checked }) : g); saveCfg(); render(); return; }
+  if (el.matches('input[data-shop]')) { const wk = mondayOf(S.cursor), arr = new Set(S.shopChecked[wk] || []); el.checked ? arr.add(el.dataset.shop) : arr.delete(el.dataset.shop); S.shopChecked[wk] = [...arr]; try { localStorage.setItem('pl-shop', JSON.stringify(S.shopChecked)); } catch (e) {} render(); return; }
+  if (el.matches('input')) return;
+  const a = el.dataset;
+  if (a.view) { S.view = a.view; S._keepScroll = false; try { localStorage.setItem('pl-view', a.view); } catch (e) {} render(); return; }
+  if (a.goday) { S.cursor = a.goday; S.view = 'day'; S.tab = 'calendrier'; S._keepScroll = false; if (location.hash !== '#calendrier') location.hash = 'calendrier'; render(); return; }
+  if (a.daytype) { openModal({ type: 'daytype', date: a.daytype }); return; }
+  if (a.open) { const e = S.events.find(x => x.id === a.open); if (e) openModal({ type: 'event', ev: Object.assign({}, e) }); return; }
+  if (a.add) { openModal({ type: 'event', ev: newEvent(a.add, S.cursor) }); return; }
+  if (a.lighten) { proposeLighten(a.lighten); return; }
+  if (a.reslot) { const e = S.events.find(x => x.id === a.reslot); if (e) { const m = { type: 'event', ev: Object.assign({}, e) }; const slot = C.findNextSlot(S.cfg, S.events, localToday(), dur(e), { ignoreId: e.id, subject: e.subject, notBefore: { date: localToday(), min: nowMin() + 15 } }); slot ? m.slot = slot : m.noslot = true; openModal(m); } return; }
+  if (a.delgoal) { S.cfg.goals = S.cfg.goals.filter(g => g.id !== a.delgoal); saveCfg(); render(); return; }
+  if (a.delexam) { S.cfg.exams.splice(+a.delexam, 1); saveCfg(); render(); return; }
+  if (el.hasAttribute('data-close')) { closeModal(); return; }
+  if (el.hasAttribute('data-export')) { exportData(); return; }
+  if (el.hasAttribute('data-askdel')) { S.modal.confirmDel = true; renderModal(); return; }
+  if (el.hasAttribute('data-delete')) { const id = S.modal.ev.id; S.events = S.events.filter(x => x.id !== id); saveEvents(); closeModal(); render(); toast('Élément supprimé'); return; }
+  if (el.hasAttribute('data-findslot')) { const e = S.modal.ev; const slot = C.findNextSlot(S.cfg, S.events, addDays(e.date, 0) < localToday() ? localToday() : e.date, dur(e), { ignoreId: e.id, subject: e.cat === 'revision' ? e.subject : null, skipDate: e.date }); S.modal.slot = slot; S.modal.noslot = !slot; renderModal(); return; }
+  if (el.hasAttribute('data-applyslot')) { const { ev: e, slot } = S.modal; updateEvent(e.id, Object.assign({}, slot, { locked: true })); closeModal(); toast('Séance replacée le ' + longDate(slot.date) + ' à ' + slot.start); return; }
+  if (el.hasAttribute('data-applyprop')) { S.events = S.modal.p.events; saveEvents(); closeModal(); render(); toast('Planning mis à jour'); return; }
+  const act = a.act;
+  if (!act) return;
+  const step = S.view === 'month' ? null : S.view === 'week' ? 7 : 1;
+  if (act === 'today') S.cursor = localToday();
+  if (act === 'prev' || act === 'next') {
+    if (step) S.cursor = addDays(S.cursor, act === 'prev' ? -step : step);
+    else { const dt = parse(S.cursor.slice(0, 8) + '01'); dt.setUTCMonth(dt.getUTCMonth() + (act === 'prev' ? -1 : 1)); S.cursor = fmt(dt); }
+  }
+  if (act === 'prevw' || act === 'nextw') S.cursor = addDays(S.cursor, act === 'prevw' ? -7 : 7);
+  if (act === 'add') { openModal({ type: 'event', ev: newEvent('perso', S.view === 'day' ? S.cursor : (S.cursor < localToday() ? S.cursor : localToday())) }); return; }
+  if (act === 'replan') { proposeReplan(); return; }
+  render();
+});
+
+document.addEventListener('change', ev => {
+  const el = ev.target;
+  if (el.id === 'imp-file' && el.files && el.files[0]) { importData(el.files[0]); el.value = ''; return; }
+  if (el.dataset.lvl != null) { S.cfg.subjects[+el.dataset.lvl].level = +el.value; S.cfg.rev.levelsConfirmed = true; saveCfg(); render(); toast('Niveau enregistré. Clique sur « Réorganiser » pour l’appliquer.'); }
+  if (el.dataset.chapters != null) { S.cfg.subjects[+el.dataset.chapters].chapters = el.value.split('\n').map(x => x.trim()).filter(Boolean); saveCfg(); render(); toast('Chapitres enregistrés'); }
+  if (el.id === 'ev-cat' && S.modal) { readEventForm(); S.modal.ev.cat = el.value; if (el.value === 'revision' && !S.modal.ev.subject) { S.modal.ev.subject = S.cfg.subjects[0].id; S.modal.ev.rtype = 'learn'; } renderModal(); }
+});
+
+function readEventForm() {
+  const e = S.modal.ev, g = id => { const x = document.getElementById(id); return x ? (x.type === 'checkbox' ? x.checked : x.value) : undefined; };
+  e.title = g('ev-title') ?? e.title; e.cat = g('ev-cat') ?? e.cat; e.date = g('ev-date') || e.date; e.start = g('ev-start') || e.start; e.end = g('ev-end') || e.end;
+  e.notes = g('ev-notes') ?? e.notes; if (g('ev-ing') !== undefined) e.ingredients = g('ev-ing'); if (g('ev-done') !== undefined) e.done = g('ev-done');
+  if (e.cat === 'revision') { e.subject = g('ev-subj') ?? e.subject; e.rtype = g('ev-rtype') ?? e.rtype; e.chapter = g('ev-chap') ?? e.chapter; }
+  return e;
+}
+
+document.addEventListener('submit', ev => {
+  ev.preventDefault();
+  const f = ev.target.dataset.form;
+  if (f === 'event') {
+    const e = readEventForm();
+    if (toMin(e.end) <= toMin(e.start)) { S.modal.error = 'L’heure de fin doit être après l’heure de début.'; return renderModal(); }
+    const cf = conflictWith(e, e.id);
+    const hard = cf.filter(b => PROTECTED.has(b.cat) && b.fixed);
+    if (hard.length && !['rdv', 'perso', 'trajet', 'cours'].includes(e.cat)) { S.modal.error = 'Ce créneau chevauche « ' + hard[0].title + ' » (' + hard[0].start + '–' + hard[0].end + '). Les cours et le travail sont des contraintes fixes : choisis un autre horaire.'; return renderModal(); }
+    if (cf.length && !S.modal.forceOk) { S.modal.error = 'Chevauchement avec « ' + cf[0].title + ' » (' + cf[0].start + '–' + cf[0].end + '). Clique à nouveau sur Enregistrer pour confirmer.'; S.modal.forceOk = true; return renderModal(); }
+    if (e.cat === 'revision') { const s = subjOf(e.subject); e.title = e.title || ((s ? s.code + ' ' + s.short : '') + ' — ' + (RTYPES[e.rtype] || {}).label); }
+    const exists = S.events.some(x => x.id === e.id);
+    const old = S.events.find(x => x.id === e.id);
+    if (old && (old.date !== e.date || old.start !== e.start)) e.locked = true;
+    S.events = exists ? S.events.map(x => x.id === e.id ? e : x) : S.events.concat([e]);
+    saveEvents(); closeModal(); render(); toast(exists ? 'Modifications enregistrées' : 'Ajouté au planning');
+  }
+  if (f === 'daytype') {
+    const d = S.modal.date, code = $('#dt-code').value, ov = $('#dt-ov').checked;
+    S.cfg.days = Object.assign({}, S.cfg.days, { [d]: code });
+    const dh = Object.assign({}, S.cfg.dayHours || {});
+    if (ov && toMin($('#dt-e').value) > toMin($('#dt-s').value)) dh[d] = { start: $('#dt-s').value, end: $('#dt-e').value }; else delete dh[d];
+    S.cfg.dayHours = dh;
+    saveCfg();
+    const clash = S.events.filter(e => e.date === d && !e.done && conflictWith(e, e.id).some(b => b.fixed && PROTECTED.has(b.cat)));
+    if (clash.length) {
+      let evs = S.events.slice(); const changes = [];
+      clash.forEach(e => { const slot = C.findNextSlot(S.cfg, evs, d, dur(e), { ignoreId: e.id, subject: e.cat === 'revision' ? e.subject : null }); if (slot) { evs = evs.map(x => x.id === e.id ? Object.assign({}, x, slot) : x); changes.push({ tag: 'déplacée', text: esc(evLabel(e)) + ' → <b>' + esc(shortDate(slot.date)) + ' ' + slot.start + '</b>' }); } });
+      openModal({ type: 'proposal', title: 'Conflits après le changement', intro: 'Ces activités tombent maintenant sur tes heures de cours ou de travail. Je propose de les décaler :', p: { changes, events: evs } });
+    } else { closeModal(); render(); toast('Journée mise à jour. Utilise « Réorganiser » si tu veux profiter du temps libéré.'); }
+    render();
+  }
+  if (f === 'goal') { const t = $('#goal-text').value.trim(); if (!t) return; S.cfg.goals = (S.cfg.goals || []).concat([{ id: uid(), text: t, done: false }]); saveCfg(); render(); }
+  if (f === 'exam') {
+    const n = $('#ex-name').value.trim(), s = $('#ex-start').value, e = $('#ex-end').value || s;
+    if (!n || !s) return; S.cfg.exams = (S.cfg.exams || []).concat([{ id: uid(), name: n, start: s, end: e < s ? s : e, note: $('#ex-note').value.trim() }]); saveCfg(); render();
+    toast('Examen ajouté. Clique sur « Réorganiser » pour adapter les révisions.');
+  }
+  if (f === 'settings') {
+    const g = id => document.getElementById(id);
+    const c = S.cfg;
+    c.work = { start: g('s-ws').value, end: g('s-we').value }; c.school = { start: g('s-ss').value, end: g('s-se').value };
+    c.commute = { work: +g('s-cw').value || 0, school: +g('s-cs').value || 0, confirmed: g('s-cc').checked };
+    c.sleep = { enabled: g('s-sl').checked, bed: g('s-bed').value, wake: g('s-wake').value };
+    Object.assign(c.rev, { eveningStart: g('r-es').value, latest: g('r-lt').value, breakAfterMin: +g('r-br').value, workEveningMin: +g('r-we').value, schoolEveningMin: +g('r-se').value, maxDayMin: +g('r-mx').value, fridayOff: g('r-fo').checked, holidayOff: g('r-ho').checked, levelsConfirmed: g('r-lc').checked });
+    saveCfg(); render(); toast('Réglages enregistrés');
+  }
+});
+
+/* ---------- Glisser-déposer & clic sur la grille ---------- */
+let drag = null;
+document.addEventListener('pointerdown', ev => {
+  if (ev.button !== 0 || ev.target.closest('input,button')) return;
+  const el = ev.target.closest('.ev[data-id]');
+  const col = ev.target.closest('.daycol');
+  if (!col) return;
+  drag = { el, col, x: ev.clientX, y: ev.clientY, moved: false, id: el && el.dataset.id };
+  if (el) el.setPointerCapture(ev.pointerId);
+});
+document.addEventListener('pointermove', ev => {
+  if (!drag || !drag.el) return;
+  const dx = ev.clientX - drag.x, dy = ev.clientY - drag.y;
+  if (!drag.moved && Math.hypot(dx, dy) < 6) return;
+  drag.moved = true; drag.el.classList.add('dragging');
+  drag.el.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+  ev.preventDefault();
+});
+document.addEventListener('pointerup', ev => {
+  if (!drag) return;
+  const d = drag; drag = null;
+  const H = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--hour')) || 44;
+  if (!d.el) {
+    // Clic dans une zone vide : créer à cette heure
+    if (Math.hypot(ev.clientX - d.x, ev.clientY - d.y) > 6) return;
+    const r = d.col.getBoundingClientRect(); const mins = Math.floor(((ev.clientY - r.top) / H * 60 + H0 * 60) / 30) * 30;
+    openModal({ type: 'event', ev: newEvent('perso', d.col.dataset.date, toHM(Math.max(H0 * 60, Math.min(mins, 23 * 60)))) });
+    return;
+  }
+  if (!d.moved) { const e = S.events.find(x => x.id === d.id); if (e) openModal({ type: 'event', ev: Object.assign({}, e) }); return; }
+  d.el.style.transform = ''; d.el.classList.remove('dragging');
+  const cols = [...document.querySelectorAll('.daycol')];
+  const target = cols.find(c => { const r = c.getBoundingClientRect(); return ev.clientX >= r.left && ev.clientX < r.right; }) || d.col;
+  const e = S.events.find(x => x.id === d.id); if (!e) return;
+  const delta = Math.round((ev.clientY - d.y) / H * 60 / 15) * 15;
+  const ns = Math.max(0, Math.min(toMin(e.start) + delta, 24 * 60 - dur(e)));
+  const moved = Object.assign({}, e, { date: target.dataset.date, start: toHM(ns), end: toHM(ns + dur(e)) });
+  const hard = conflictWith(moved, e.id).filter(b => b.fixed && PROTECTED.has(b.cat));
+  if (hard.length && !['rdv', 'perso', 'trajet'].includes(e.cat)) { toast('Impossible : ce créneau tombe sur « ' + hard[0].title + ' ».'); render(); return; }
+  const sl = S.cfg.sleep && S.cfg.sleep.enabled && (ns < toMin(S.cfg.sleep.wake) || ns + dur(e) > toMin(S.cfg.sleep.bed));
+  updateEvent(e.id, { date: moved.date, start: moved.start, end: moved.end, locked: true });
+  toast(sl ? 'Déplacé, mais ça empiète sur ton sommeil.' : 'Déplacé au ' + shortDate(moved.date) + ' à ' + moved.start);
+});
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && S.modal) closeModal(); });
+
+/* ---------- Navigation ---------- */
+const TABS = ['calendrier', 'tableau', 'revisions', 'sport', 'nutrition', 'reglages'];
+function route() { const h = location.hash.replace('#', ''); S.tab = TABS.includes(h) ? h : 'calendrier'; S._keepScroll = false; render(); }
+window.addEventListener('hashchange', route);
+setInterval(() => { if (S.tab === 'calendrier' && !S.modal && !drag && S.cfg) render(); }, 5 * 60 * 1000);
+route();
+initStore();
+if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+</script>
+
+</body>
+</html>
